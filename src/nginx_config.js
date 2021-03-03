@@ -5,6 +5,9 @@ server {
 
   # server_name ${setup.host} *.ngrok.io;
 
+  # Live page root
+  root /home/waasabi/live/_site/;
+
   # Strapi redirect
   location /waasabi/ {
     proxy_set_header        Host $host;

@@ -5,7 +5,10 @@ import fs from 'fs';
 import { randomBytes } from 'crypto';
 import ngrok from 'ngrok';
 
+import { Readable } from 'stream';
+
 import generateCloudInit from './src/cloud_init.js';
+import generateLiveWebsiteConfig from './src/live_website_config.js';
 
 import { spawn } from 'child_process';
 
@@ -26,7 +29,7 @@ function fHeading(s) {
     // Random instance ID, used to expose the config logs from inside the instance
     iid: randomBytes(32).toString('hex'),
     // Default app name (e.g. home dir folder for Strapi install)
-    app: 'waa',
+    app: 'host',
     // Default secret (e.g. for JWT encryption)
     secret: randomBytes(32).toString('base64'),
     // Strapi version to install
@@ -231,6 +234,7 @@ function fHeading(s) {
     await saveConfig(configfile, setup);
 
 
+    // Create a local development instance using multipass
     if (setup.instance.type == 'local') {
       console.log(fHeading('Creating Waasabi instance'));
       
@@ -248,6 +252,20 @@ function fHeading(s) {
       await multipassUpdateStrapiConfig(localinstance, setup.app_config, [
         [ 'ADMIN_JWT_SECRET', setup.secret ]
       ]);
+
+    // TODO: launch a new Digital Ocean droplet directly from the init script
+    // } else if (setup.instance.type == 'do') {}
+    //
+    } else {
+      console.log(
+        fHeading('Manual configuration')
+        +`Your will find your ${colors.magentaBright('cloud-init')} configuration file in:\n`
+        +colors.blueBright(`./${instancedir}/cloud-init.yaml`)
+        +'\n\nYou can use it to configure any cloud provider that supports '
+        +'cloud-init, or by using cloud-init manually on your deployment server.'
+      );
+
+      process.exit(0);
     }
   }
 
@@ -267,6 +285,14 @@ function fHeading(s) {
   // TODO: make this run parallel to the webhook prompt to save time to the user
   await multipassRebuildStrapi(localinstance);
   await multipassRestartStrapi(localinstance);
+
+  // Update Live website config & rebuild
+  await multipassWriteFile(
+    localinstance,
+    '/home/waasabi/live/website.config.js',
+    generateLiveWebsiteConfig(setup)
+  );
+  await multipassRebuildLiveSite(localinstance);
 
   console.log('Ngrok tunnel started: '+colors.blueBright(setup.instance.ngrokUrl));
 
@@ -408,26 +434,48 @@ async function multipassRestartStrapi(instance) {
     'sudo',
       '-u', 'waasabi',
     'bash',
-      '-c', 'pm2 restart all'
+      '-c', 'pm2 --update-env restart all'
   ]);
 }
 
 async function multipassRebuildStrapi(instance) {
   // Rebuild the admin UI after a config change
+  // TODO: pull app directory info from current config
+  const app = 'host';
   return await multipassExec(instance, [
     'sudo',
       '-u', 'waasabi',
     'bash',
-      '-c', 'cd ~/waa && ./node_modules/.bin/strapi build'
+      '-c', `cd ~/${app} && ./node_modules/.bin/strapi build`
   ]);
 }
 
-async function multipassExec(instance, command) {
+async function multipassRebuildLiveSite(instance) {
+  // Rebuild Live website
+  const app = 'host';
+  return await multipassExec(instance, [
+    'sudo',
+      '-u', 'waasabi',
+    'bash',
+      '-c', `cd ~/live && npm run build`
+  ]);
+}
+
+async function multipassWriteFile(instance, file, contents) {
+  return await multipassExec(instance, [ 'sudo', 'tee', file ], contents);
+}
+
+async function multipassExec(instance, command, stdin) {
   const multipass = spawn('multipass', ['exec', instance, '--'].concat(command));
 
   let outdata = [];
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => { 
+    // Pass contents in on STDIN if requested
+    if (stdin) {
+      if (typeof stdin == 'string') Readable.from([stdin]).pipe(multipass.stdin);
+    }
+
     multipass.stdout.on('data', (data) => outdata.push(data));
     multipass.stderr.pipe(process.stderr);
     multipass.on('exit', (code) => {
