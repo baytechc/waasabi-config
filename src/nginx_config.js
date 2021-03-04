@@ -3,7 +3,7 @@ server {
   listen 80;
   listen [::]:80;
 
-  # server_name ${setup.host} *.ngrok.io;
+  ${setup.instance.type=='local' ? '#' :''}server_name ${setup.host};
 
   # Live page root
   root /home/waasabi/live/_site/;

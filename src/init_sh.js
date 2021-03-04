@@ -9,8 +9,7 @@ export default (setup) => `
 # Waasabi setup
 
 # Certbot (generate LetsEncrypt SSL certificate)
-# Uncomment when publishing into production!
-# certbot -n --nginx -d ${setup.host} --agree-tos --redirect -m ${setup.admin_email}
+${setup.instance.type=='local' ? '#' :''}certbot -n --nginx -d ${setup.host} --agree-tos --redirect -m ${setup.admin_email}
 
 # Install PM2
 npm install pm2 -g
