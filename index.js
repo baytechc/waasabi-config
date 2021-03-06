@@ -4,16 +4,15 @@ import YAML from 'yaml';
 import fs from 'fs';
 import ngrok from 'ngrok';
 
-import { Readable } from 'stream';
 
 import generateCloudInit from './src/cloud_init.js';
 import generateLiveWebsiteConfig from './src/live_website_config.js';
 
-import { spawn } from 'child_process';
 
 const { Input, Snippet, Toggle, Select, Password } = enquirer;
 
 import setup, * as Setup from './src/init/setup.js';
+import * as Multipass from './src/init/multipass.js';
 
 
 
@@ -77,7 +76,7 @@ function fHeading(s) {
   }
 
   let localinstance = Setup.instancename();
-  let localhost = await multipassFind(localinstance);
+  let localhost = await Multipass.find(localinstance);
 
   let reconfigure = true;
   if (localhost) {
@@ -228,9 +227,9 @@ function fHeading(s) {
     if (setup.instance.type == 'local') {
       console.log(fHeading('Creating Waasabi instance'));
       
-      let mp = await multipassLaunch(localinstance, yaml);
+      let mp = await Multipass.launch(localinstance, yaml);
 
-      let localhost = await multipassFind(localinstance);
+      let localhost = await Multipass.find(localinstance);
       if (localhost) {
         const localinfo = localhost.info[localinstance];
         setup.local_server = { ip: localinfo.ipv4 };
@@ -239,7 +238,7 @@ function fHeading(s) {
       }
 
       console.log(fHeading('Configuring Waasabi instance'));
-      await multipassUpdateStrapiConfig(localinstance, setup.app_config, [
+      await Multipass.updateStrapiConfig(localinstance, setup.app_config, [
         [ 'ADMIN_JWT_SECRET', setup.secret ]
       ]);
 
@@ -269,7 +268,7 @@ function fHeading(s) {
   setup.instance.adminUrl = setup.instance.backendUrl+'/admin';
   setup.instance.webhookUrl = setup.instance.backendUrl+'/event-manager/webhooks';
 
-  await multipassUpdateStrapiConfig(localinstance, setup.app_config, [
+  await Multipass.updateStrapiConfig(localinstance, setup.app_config, [
     [ 'BACKEND_URL', setup.instance.backendUrl ]
   ]);
 
@@ -301,22 +300,22 @@ function fHeading(s) {
       initial: setup.backend.webhook_secret
     })).run();
 
-    await multipassUpdateStrapiConfig(localinstance, setup.app_config, [
+    await Multipass.updateStrapiConfig(localinstance, setup.app_config, [
       [ 'MUX_WEBHOOK_SECRET', setup.backend.webhook_secret ]
     ]);
   }
 
   // TODO: make this run parallel to the webhook prompt to save time to the user
-  await multipassRebuildStrapi(localinstance);
-  await multipassRestartStrapi(localinstance);
+  await Multipass.rebuildStrapi(localinstance);
+  await Multipass.restartStrapi(localinstance);
 
   // Update Live website config & rebuild
-  await multipassWriteFile(
+  await Multipass.writeFile(
     localinstance,
     '/home/waasabi/live/website.config.js',
     generateLiveWebsiteConfig(setup)
   );
-  await multipassRebuildLiveSite(localinstance);
+  await Multipass.rebuildLiveSite(localinstance);
 
   await Setup.persist();
 
@@ -349,142 +348,3 @@ function matrixBotBinary() {
   return 'curl -sSf https://waasabi.baytech.community/ferris-bot-x86_64-pc-linux-gnu.tgz | tar -xz -C bin';
 }
 
-
-function multipassLaunch(instance, cloudinit) {
-  // multipass launch --disk 10G --mem 2G --name waasabi-dev lts --cloud-init -
-  const multipass = spawn('multipass', ['launch', '-c','2', '-d','10G', '-m','2G', '-n',instance, '--cloud-init', '-', 'lts']);
-  
-  multipass.stdin.end(cloudinit);
-
-  let outdata = [];
-
-  return new Promise((resolve, reject) => {
-    multipass.stdout.on('data', (data) => {
-      outdata.push(data);
-
-      //const str = data.toString().trim()
-      //if ('\|/-'.includes(str) == false) {
-      //  console.log(colors.magenta(str));
-      //}
-    });
-    multipass.stdout.pipe(process.stdout);
-
-    multipass.stderr.on('data', (data) => console.log(data.toString(), multipass.spawnargs.join(' ')));
-    multipass.on('exit', (code) => {
-      console.log(Buffer.concat(outdata).toString());
-      //let res = JSON.parse(Buffer.concat(outdata).toString());
-      //console.log(code, res);
-      resolve(multipassFind(instance));
-    });
-  });
-}
-
-async function multipassFind(instance) {
-  const multipass = spawn('multipass', ['info', '--format', 'json', instance]);
-
-  let outdata = [];
-
-  return new Promise((resolve, reject) => {
-    multipass.stdout.on('data', (data) => outdata.push(data));
-    multipass.stderr.on('data', (data) => console.log(data.toString()));
-    multipass.on('exit', (code) => {
-      let res = undefined;
-
-      try {
-        res = JSON.parse(Buffer.concat(outdata).toString());
-      }
-      catch(e) {}
-
-      resolve(res);
-    });
-  });
-}
-
-async function multipassUpdateStrapiConfig(instance, configfile, envVars) {
-  if (typeof envVars != 'object' || envVars instanceof Array === false) {
-    return console.error('Failed to update server configuration.');
-  }
-
-  for (const [key,value] of envVars.values()) {
-    let command = [ 
-      'sudo', 'sed', '-in',
-      `s/^${key}=.*$//; t set
-$ { x; /^$/ {x; p; b set} ;d }
-p;d
-:set
-s~.*~${key}=${value}~p; h; d`,
-      configfile
-    ];
-
-    await multipassExec(instance, command);    
-  }
-
-  // TODO: replicate locally
-  await multipassRestartStrapi(instance);
-}
-
-async function multipassRestartStrapi(instance) {
-  // Restart PM2
-  return await multipassExec(instance, [
-    'sudo',
-      '-u', 'waasabi',
-    'bash',
-      '-c', 'pm2 --update-env restart all'
-  ]);
-}
-
-async function multipassRebuildStrapi(instance) {
-  // Rebuild the admin UI after a config change
-  // TODO: pull app directory info from current config
-  const app = 'host';
-  return await multipassExec(instance, [
-    'sudo',
-      '-u', 'waasabi',
-    'bash',
-      '-c', `cd ~/${app} && ./node_modules/.bin/strapi build --no-optimization`
-  ]);
-}
-
-async function multipassRebuildLiveSite(instance) {
-  // Rebuild Live website
-  const app = 'host';
-  return await multipassExec(instance, [
-    'sudo',
-      '-u', 'waasabi',
-    'bash',
-      '-c', `cd ~/live && npm run build`
-  ]);
-}
-
-async function multipassWriteFile(instance, file, contents) {
-  return await multipassExec(instance, [ 'sudo', 'tee', file ], contents);
-}
-
-async function multipassExec(instance, command, stdin) {
-  const multipass = spawn('multipass', ['exec', instance, '--'].concat(command));
-
-  let outdata = [];
-
-  return new Promise((resolve, reject) => { 
-    // Pass contents in on STDIN if requested
-    if (stdin) {
-      if (typeof stdin == 'string') Readable.from([stdin]).pipe(multipass.stdin);
-    }
-
-    multipass.stdout.on('data', (data) => outdata.push(data));
-    multipass.stderr.pipe(process.stderr);
-    multipass.on('exit', (code) => {
-      let res = Buffer.concat(outdata).toString();
-
-      if (code) return reject('Failed multipass command: '+command.join(' '));
-      try {
-        res = JSON.parse(res);
-      }
-      catch(e) {
-        console.log(res);
-      }
-
-      resolve(res);
-    });
-  });
-}
