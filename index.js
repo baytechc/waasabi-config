@@ -212,7 +212,7 @@ function fHeading(s) {
 
     setup.instance.type = await (new Select({
       name: 'instance_type',
-      message: 'Select video streaming backend',
+      message: 'Where do you want to create the service?',
       choices: [
         { name: 'local',  message: '[LOCAL ] Local development server using Multipass' },
         { name: 'do',     message: '[ONLINE] Create a new Waasabi droplet on Digital Ocean' },
@@ -282,17 +282,6 @@ function fHeading(s) {
   await multipassUpdateStrapiConfig(localinstance, setup.app_config, [
     [ 'BACKEND_URL', setup.instance.backendUrl ]
   ]);
-  // TODO: make this run parallel to the webhook prompt to save time to the user
-  await multipassRebuildStrapi(localinstance);
-  await multipassRestartStrapi(localinstance);
-
-  // Update Live website config & rebuild
-  await multipassWriteFile(
-    localinstance,
-    '/home/waasabi/live/website.config.js',
-    generateLiveWebsiteConfig(setup)
-  );
-  await multipassRebuildLiveSite(localinstance);
 
   console.log('Ngrok tunnel started: '+colors.blueBright(setup.instance.ngrokUrl));
 
@@ -321,7 +310,23 @@ function fHeading(s) {
       message: 'Webhook Secret',
       initial: setup.backend.webhook_secret
     })).run();
+
+    await multipassUpdateStrapiConfig(localinstance, setup.app_config, [
+      [ 'MUX_WEBHOOK_SECRET', setup.backend.webhook_secret ]
+    ]);
   }
+
+  // TODO: make this run parallel to the webhook prompt to save time to the user
+  await multipassRebuildStrapi(localinstance);
+  await multipassRestartStrapi(localinstance);
+
+  // Update Live website config & rebuild
+  await multipassWriteFile(
+    localinstance,
+    '/home/waasabi/live/website.config.js',
+    generateLiveWebsiteConfig(setup)
+  );
+  await multipassRebuildLiveSite(localinstance);
 
   await saveConfig(configfile, setup);
 
@@ -446,7 +451,7 @@ async function multipassRebuildStrapi(instance) {
     'sudo',
       '-u', 'waasabi',
     'bash',
-      '-c', `cd ~/${app} && ./node_modules/.bin/strapi build`
+      '-c', `cd ~/${app} && ./node_modules/.bin/strapi build --no-optimization`
   ]);
 }
 
