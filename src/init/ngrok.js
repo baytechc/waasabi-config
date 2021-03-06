@@ -8,12 +8,7 @@ import * as Multipass from './multipass.js';
 
 import YAML from 'yaml';
 
-
-// TODO: move these to separate module
-import colors from 'ansi-colors';
-function fHeading(s) {
-  return '\n'+colors.green(s)+'\n'
-}
+import { layout } from './content-formatter.js';
 
 
 export async function connect() {
@@ -34,7 +29,7 @@ export async function connect() {
   // TODO: try connecting using special domains
   let url;
   if (authtoken) {
-    console.log('Connecting using Ngrok authtoken.')
+    layout(`Connecting using Ngrok authtoken.`);
 
     try {
       // TODO: make subdomain customizable
@@ -50,12 +45,16 @@ export async function connect() {
     url = await ngrok.connect({ addr, authtoken });
   }
 
-  console.log(`Ngrok tunnel for [${addr}] started: `+colors.blueBright(url));
+  layout(`
+    The development server at *${addr}* is now accessible via:
+  
+    ${url}
+  `);
 
   // If the Ngrok URL is the same (e.g. using a custom subdomain) as in
   // previous runs, no need to reconfigure incoming addresses, webhooks, etc.
   if (setup.instance.ngrokUrl === url) {
-    console.log(`Ngrok URL unchanged, skipping reconfiguring endpoints.`);
+    layout(`Ngrok URL unchanged, skipped reconfiguring endpoints.`);
     return;
   }
 
@@ -80,24 +79,22 @@ export async function connect() {
 }
 
 async function muxWebhookConfig(){
-  console.log(
-    fHeading('Webhook configuration')
-    +'When using the Mux streaming backend, the Waasabi server needs to receive '
-    +'calls from Mux.com in the form of webhooks. We use a tool called Ngrok to '
-    +'make the local Waasabi instance accessible for Mux\'s servers, but you '
-    +'need to manually configure Mux.com\'s webhooks at:\n'
-    +'https://dashboard.mux.com/settings/webhooks'
+  layout(`
+    ## Webhook configuration
+    
+    When using the Mux streaming backend, the Waasabi server needs to receive 'calls from Mux.com in the form of webhooks.
+    We use a tool called Ngrok to make the local Waasabi instance accessible for Mux's servers, but you need to manually configure Mux.com's webhooks at:
+    
+    https://dashboard.mux.com/settings/webhooks
 
-    +'\n\nYou will need to point the webhooks to this URL:\n'
-    +colors.blueBright(setup.instance.webhookUrl)
-  );
+    You will need to point the webhooks to this URL:
+    
+    setup.instance.webhookUrl
 
-  console.log(
-    '\n'
-    +'Once the webhook is configured, you will receive a Signing Secret '
-    +'from Mux. This is used to ensure noone else can fake these webhook '
-    +'requests. Please copy-paste the value of the secret here:'
-  );
+    Once the webhook is configured, you will receive a Signing Secret from Mux.
+    This is used to ensure noone else can fake these webhook requests.
+    Please copy-paste the provided signing secret here:
+  `);
 
   setup.backend.webhook_secret = await (new enquirer.Password({
     name: 'backend.mux_webhook_secret',

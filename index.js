@@ -1,5 +1,4 @@
 import enquirer from 'enquirer';
-import colors from 'ansi-colors';
 import YAML from 'yaml';
 import fs from 'fs';
 
@@ -14,29 +13,24 @@ import setup, * as Setup from './src/init/setup.js';
 import * as Multipass from './src/init/multipass.js';
 import * as Ngrok from './src/init/ngrok.js';
 
+import { layout } from './src/init/content-formatter.js';
 
-// TODO: create separate module for formatting
-function fTitle(s) {
-  return colors.bgGreen(' '+s+' ')+'\n'
-}
-function fHeading(s) {
-  return '\n'+colors.green(s)+'\n'
-}
 
 (async () => {
   // Initialize setup
   Setup.reset();
   Setup.init();
   
-  console.log(
-    fTitle(' Welcome to the Waasabi installer! ')
-    +'This interactive setup program will guide you through setting up '
-    +'your very own customized video broadcast channel on your website. '
-    +'For more details, refer to the documentation: '
-    +colors.blueBright('https://waasabi.org/docs')
-  );
+  layout(`
+    # Welcome to the Waasabi installer!
 
-  console.log(fHeading('Domain configuration'));
+    This interactive setup utility will guide you through setting up your very own customized video broadcast channel on your website.
+    To learn more about the installation process, please refer to the documentation:
+
+    https://waasabi.org/docs
+  `);
+
+  layout(`## Domain configuration`);
 
   setup.domain = await (new Input({
     name: 'domain',
@@ -85,10 +79,11 @@ function fHeading(s) {
   let reconfigure = true;
   if (localhost) {
     const localinfo = localhost.info[localinstance];
-    console.log(
-      fHeading('Found existing instance')
-      +'\n'+colors.blueBright(`${localinfo.state}: ${localinfo.release} (${localinfo.ipv4})`)+'\n'
-    );
+    layout(`
+      ## Found existing instance
+
+      *${localinfo.release} @ ${localinfo.ipv4}* \`(${localinfo.state})\`
+    `);
     setup.instance.ip = localinfo.ipv4[0];
 
     reconfigure = await (new Toggle({
@@ -97,29 +92,30 @@ function fHeading(s) {
     })).run();
   
     if (!reconfigure) {
-      console.log(
-        '\nUsing existing configuration…\n'
-      );  
+      layout(`
+        Using existing configuration…
+      `);  
     }
   }
 
   if (reconfigure) {
-    console.log(
-      fHeading('Administrator access')
-      +'Please enter an e-mail address you would like to use for the administrator login. '
-      +'You will also receive important information from LetsEncrypt and other services at this address.\n'
-      +'Note: the e-mail address will not be displayed publicly anywhere',
-    )
+    layout(`
+      ## Administrator access
+
+      Please enter an e-mail address you would like to use for the administrator login.
+      You will also receive important information from Let's Encrypt and other services at this address.
+
+      Note: the e-mail address will not be publicly displayed anywhere.
+    `);
     setup.admin_email = await (new Input({
       name: 'admin_email',
       message: 'Admin email',
       initial: setup.admin_email ?? 'webmaster@'+setup.domain
     })).run();
 
-    console.log('\n'
-      +'Please provide a unique, secure password for accessing '
-      +'the server and administrative interfaces:'
-    )
+    layout(`
+      Please provide a unique, secure password for accessing the server and administrative interfaces:
+    `);
     setup.admin_password = await (new Password({
       name: 'admin_password',
       message: 'Admin password',
@@ -145,7 +141,7 @@ function fHeading(s) {
     }
 
 
-    console.log(fHeading('Waasabi instance details'));
+    layout(`##  Waasabi instance details`);
 
     setup.title = await (new Input({
       name: 'title',
@@ -155,11 +151,11 @@ function fHeading(s) {
     })).run();
 
 
+    layout(`
+      ## Streaming backend
 
-    console.log(
-      fHeading('Streaming backend')
-      +'Please choose the video streaming provider you would like to use'
-    )
+      Please choose the video streaming provider you would like to use.
+    `);
 
     const backend_options = [
       { name: 'Use Mux.com (HLS)', type: 'mux'},
@@ -178,11 +174,12 @@ function fHeading(s) {
     if (backend_type === backend_options[BACKEND_MUX].name) {
       setup.backend.type = backend_options[BACKEND_MUX].type;
 
-      console.log('\n'
-        +'Before using the Mux.com backend you need to sign up for the service at https://mux.com\n'
-        +'Please configure the Access Token & Token Secret below, as provided by Mux. '
-        +'You can create new credentials at https://dashboard.mux.com/settings/access-tokens'
-      )
+      layout(`
+        Before you may start using the Mux.com backend you will need to sign up for the service at https://mux.com/.
+        Please configure the Access Token & Token Secret below, as provided by Mux.
+        
+        You can create new credentials at https://dashboard.mux.com/settings/access-tokens
+      `);
 
       setup.backend.token = await (new Input({
         name: 'backend.mux_token_id',
@@ -198,10 +195,11 @@ function fHeading(s) {
     }
 
 
-    console.log(
-      fHeading('Instance type')
-      +'Please choose the kind of Waasabi instance that will be created.'
-    )
+    layout(`
+      ## Instance type
+
+      Please choose the kind of Waasabi instance that will be created.
+    `);
 
     setup.instance.type = await (new Select({
       name: 'instance_type',
@@ -227,7 +225,7 @@ function fHeading(s) {
 
   // Create a local development instance using multipass
   if (setup.instance.type == 'local') {
-    console.log(fHeading('Configuring local Waasabi instance'));
+    layout(`## Configuring local Waasabi instance`);
 
     // TODO: do not launch if already exists/running
     await Multipass.launch(localinstance, fs.readFileSync(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url)));
@@ -243,7 +241,9 @@ function fHeading(s) {
 
     setup.instance.ip = localinfo.ipv4[0];
 
-    console.log('Local Multipass server launched on '+colors.blueBright(setup.instance.ip));
+    layout(`
+      Local Multipass server launched on *${setup.instance.ip}*
+    `);
 
     await Multipass.updateStrapiConfig(localinstance, setup.app_config, [
       [ 'ADMIN_JWT_SECRET', setup.secret ]
@@ -256,13 +256,15 @@ function fHeading(s) {
   //
   } else {
     // TODO: configure Mux webhooks
-    console.log(
-      fHeading('Manual configuration')
-      +`Your will find your ${colors.magentaBright('cloud-init')} configuration file in:\n`
-      +colors.blueBright(`./${Setup.instancedir()}/cloud-init.yaml`)
-      +'\n\nYou can use it to configure any cloud provider that supports '
-      +'cloud-init, or by using cloud-init manually on your deployment server.'
-    );
+    layout(`
+      ## Manual configuration
+
+      Your will find your \`cloud-init\` configuration file in:
+
+      \`./${Setup.instancedir()}/cloud-init.yaml\`
+
+      You can use it to configure any cloud provider that supports cloud-init, or by using cloud-init manually on your deployment server.
+    `);
 
     process.exit(0);
   }
@@ -282,15 +284,17 @@ function fHeading(s) {
 
   await Setup.persist();
 
-  console.log(
-    fHeading('Waasabi is up & running!')
-    +'You can access the administration interface on the link below:\n'
-    +colors.blueBright(setup.instance.adminUrl)
+  layout(`
+    ## Waasabi is up & running!
 
-    +'\n'+fHeading('Waasabi commandline')
-    +'You can control the development instance using the Waasabi commandline. '
-    +'Type "exit" to stop. Type "help" to learn about the other commands.'
-  );
+    You can access the administration interface on the link below:
+
+    ${setup.instance.adminUrl}
+
+    ## Waasabi commandline
+
+    You can control the development instance using the Waasabi commandline. Type "exit" to stop. Type "help" to learn about the other commands.
+  `);
 
 
   while (true) {
