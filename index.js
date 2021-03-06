@@ -2,7 +2,6 @@ import enquirer from 'enquirer';
 import colors from 'ansi-colors';
 import YAML from 'yaml';
 import fs from 'fs';
-import { randomBytes } from 'crypto';
 import ngrok from 'ngrok';
 
 import { Readable } from 'stream';
@@ -14,6 +13,9 @@ import { spawn } from 'child_process';
 
 const { Input, Snippet, Toggle, Select, Password } = enquirer;
 
+import setup, * as Setup from './src/init/setup.js';
+
+
 
 function fTitle(s) {
   return colors.bgGreen(' '+s+' ')+'\n'
@@ -23,19 +25,10 @@ function fHeading(s) {
 }
 
 (async () => {
-  let setup = {
-    // Instance-specific configuration
-    instance: {},
-    // Random instance ID, used to expose the config logs from inside the instance
-    iid: randomBytes(32).toString('hex'),
-    // Default app name (e.g. home dir folder for Strapi install)
-    app: 'host',
-    // Default secret (e.g. for JWT encryption)
-    secret: randomBytes(32).toString('base64'),
-    // Strapi version to install
-    strapiVersion: '@3.4.6' || process.env.STRAPI_VERSION,
-  };
-
+  // Initialize setup
+  Setup.reset();
+  Setup.init();
+  
   console.log(
     fTitle(' Welcome to the Waasabi installer! ')
     +'This interactive setup program will guide you through setting up '
@@ -72,21 +65,18 @@ function fHeading(s) {
   setup.host = host.result;
   setup.subdomain = host.values.subdomain;
 
-  const instancedir = 'instance/' + setup.host;
-  const configfile = new URL(`${instancedir}/setup.json`, import.meta.url);
-
-  if (fs.existsSync(configfile)) {
+  if (fs.existsSync(Setup.configfile())) {
     const loadsettings = await (new Toggle({
       message: 'Load existing configuration?',
       initial: true,
     })).run();
 
     if (loadsettings) {
-      setup = Object.assign({}, JSON.parse(fs.readFileSync(configfile).toString()), setup);
+      setup = Object.assign({}, JSON.parse(fs.readFileSync(Setup.configfile()).toString()), setup);
     }
   }
 
-  let localinstance = 'waasabi-'+setup.host.replace(/\./g,'-');
+  let localinstance = Setup.instancename();
   let localhost = await multipassFind(localinstance);
 
   let reconfigure = true;
@@ -225,13 +215,13 @@ function fHeading(s) {
     setup.app_config = `/home/waasabi/${setup.app}/.env`;
 
     // Ensure project dir exists
-    await fs.promises.mkdir(new URL(instancedir, import.meta.url), { recursive: true });
+    await fs.promises.mkdir(new URL(Setup.instancedir(), import.meta.url), { recursive: true });
 
     // Cloud Init YAML
     const yaml = YAML.stringify(await generateCloudInit(setup));
-    await fs.promises.writeFile(new URL(`${instancedir}/cloud-init.yml`, import.meta.url), yaml);
+    await fs.promises.writeFile(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url), yaml);
 
-    await saveConfig(configfile, setup);
+    await Setup.persist();
 
 
     // Create a local development instance using multipass
@@ -260,7 +250,7 @@ function fHeading(s) {
       console.log(
         fHeading('Manual configuration')
         +`Your will find your ${colors.magentaBright('cloud-init')} configuration file in:\n`
-        +colors.blueBright(`./${instancedir}/cloud-init.yaml`)
+        +colors.blueBright(`./${Setup.instancedir()}/cloud-init.yaml`)
         +'\n\nYou can use it to configure any cloud provider that supports '
         +'cloud-init, or by using cloud-init manually on your deployment server.'
       );
@@ -328,7 +318,7 @@ function fHeading(s) {
   );
   await multipassRebuildLiveSite(localinstance);
 
-  await saveConfig(configfile, setup);
+  await Setup.persist();
 
   console.log(
     fHeading('Waasabi is up & running!')
@@ -497,14 +487,4 @@ async function multipassExec(instance, command, stdin) {
       resolve(res);
     });
   });
-}
-
-// Config settings
-async function saveConfig(configfile, config) {
-  await fs.promises.writeFile(configfile, JSON.stringify(config, null, 2));
-
-  console.log(
-    '\nConfiguration saved in: '
-    +colors.blueBright(`instance/${config.host}`)
-  );
 }
