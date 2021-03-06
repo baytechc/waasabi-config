@@ -2,7 +2,6 @@ import enquirer from 'enquirer';
 import colors from 'ansi-colors';
 import YAML from 'yaml';
 import fs from 'fs';
-import ngrok from 'ngrok';
 
 
 import generateCloudInit from './src/cloud_init.js';
@@ -13,9 +12,10 @@ const { Input, Snippet, Toggle, Select, Password } = enquirer;
 
 import setup, * as Setup from './src/init/setup.js';
 import * as Multipass from './src/init/multipass.js';
+import * as Ngrok from './src/init/ngrok.js';
 
 
-
+// TODO: create separate module for formatting
 function fTitle(s) {
   return colors.bgGreen(' '+s+' ')+'\n'
 }
@@ -33,7 +33,7 @@ function fHeading(s) {
     +'This interactive setup program will guide you through setting up '
     +'your very own customized video broadcast channel on your website. '
     +'For more details, refer to the documentation: '
-    +colors.blueBright('https://waasabi.baytech.community/docs')
+    +colors.blueBright('https://waasabi.org/docs')
   );
 
   console.log(fHeading('Domain configuration'));
@@ -79,6 +79,7 @@ function fHeading(s) {
   }
 
   let localinstance = Setup.instancename();
+  // TODO: move this to Multipass
   let localhost = await Multipass.find(localinstance);
 
   let reconfigure = true;
@@ -88,7 +89,7 @@ function fHeading(s) {
       fHeading('Found existing instance')
       +'\n'+colors.blueBright(`${localinfo.state}: ${localinfo.release} (${localinfo.ipv4})`)+'\n'
     );
-    setup.local_server = { ip: localinfo.ipv4 };
+    setup.instance.ip = localinfo.ipv4[0];
 
     reconfigure = await (new Toggle({
       message: 'Reconfigure existing local server?',
@@ -97,7 +98,7 @@ function fHeading(s) {
   
     if (!reconfigure) {
       console.log(
-        '\nSkipping reconfiguration...\n'
+        '\nUsing existing configuration…\n'
       );  
     }
   }
@@ -213,9 +214,6 @@ function fHeading(s) {
       ]
     })).run();
 
-    // Waasabi config file
-    setup.app_config = `/home/waasabi/${setup.app}/.env`;
-
     // Ensure project dir exists
     await fs.promises.mkdir(new URL(Setup.instancedir(), import.meta.url), { recursive: true });
 
@@ -224,90 +222,51 @@ function fHeading(s) {
     await fs.promises.writeFile(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url), yaml);
 
     await Setup.persist();
+  } // end of: reconfigure?
 
 
-    // Create a local development instance using multipass
-    if (setup.instance.type == 'local') {
-      console.log(fHeading('Creating Waasabi instance'));
-      
-      let mp = await Multipass.launch(localinstance, yaml);
+  // Create a local development instance using multipass
+  if (setup.instance.type == 'local') {
+    console.log(fHeading('Configuring local Waasabi instance'));
 
-      let localhost = await Multipass.find(localinstance);
-      if (localhost) {
-        const localinfo = localhost.info[localinstance];
-        setup.local_server = { ip: localinfo.ipv4 };
+    // TODO: do not launch if already exists/running
+    await Multipass.launch(localinstance, fs.readFileSync(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url)));
 
-        console.log('Local Multipass server launched on '+colors.blueBright(setup.local_server.ip));
-      }
-
-      console.log(fHeading('Configuring Waasabi instance'));
-      await Multipass.updateStrapiConfig(localinstance, setup.app_config, [
-        [ 'ADMIN_JWT_SECRET', setup.secret ]
-      ]);
-
-    // TODO: launch a new Digital Ocean droplet directly from the init script
-    // } else if (setup.instance.type == 'do') {}
-    //
-    } else {
-      console.log(
-        fHeading('Manual configuration')
-        +`Your will find your ${colors.magentaBright('cloud-init')} configuration file in:\n`
-        +colors.blueBright(`./${Setup.instancedir()}/cloud-init.yaml`)
-        +'\n\nYou can use it to configure any cloud provider that supports '
-        +'cloud-init, or by using cloud-init manually on your deployment server.'
-      );
-
-      process.exit(0);
+    // TODO: move to Multipass under a specific function?
+    let localhost = await Multipass.find(localinstance);
+    if (!localhost) {
+      console.error('Failed creating local Waasabi instance.');
+      process.exit(1);
     }
-  }
 
+    const localinfo = localhost.info[localinstance];
 
-  // TODO: ngrok+mux.com webhooks
-  // NOTE: ngrok http -host-header=myapp.dev 80
-  // https://www.npmjs.com/package/ngrok
-  // TODO: extract multipass ip first
-  setup.instance.ngrokUrl = await ngrok.connect({addr:`${setup.local_server.ip}:80`});
-  setup.instance.backendUrl = setup.instance.ngrokUrl+'/waasabi';
-  setup.instance.adminUrl = setup.instance.backendUrl+'/admin';
-  setup.instance.webhookUrl = setup.instance.backendUrl+'/event-manager/webhooks';
+    setup.instance.ip = localinfo.ipv4[0];
 
-  await Multipass.updateStrapiConfig(localinstance, setup.app_config, [
-    [ 'BACKEND_URL', setup.instance.backendUrl ]
-  ]);
-
-  console.log('Ngrok tunnel started: '+colors.blueBright(setup.instance.ngrokUrl));
-
-  if (setup.instance.type == 'local' && setup.backend.type == 'mux') {
-    console.log(
-      fHeading('Webhook configuration')
-      +'When using the Mux streaming backend, the Waasabi server needs to receive '
-      +'calls from Mux.com in the form of webhooks. We use a tool called Ngrok to '
-      +'make the local Waasabi instance accessible for Mux\'s servers, but you '
-      +'need to manually configure Mux.com\'s webhooks at:\n'
-      +'https://dashboard.mux.com/settings/webhooks'
-
-      +'\n\nYou will need to point the webhooks to this URL:\n'
-      +colors.blueBright(setup.instance.webhookUrl)
-    );
-
-    console.log(
-      '\n'
-      +'Once the webhook is configured, you will receive a Signing Secret '
-      +'from Mux, this is used to ensure noone else can fake these webhook '
-      +'requests. Please copy-paste the value of the secret here:'
-    );
-
-    setup.backend.webhook_secret = await (new Password({
-      name: 'backend.mux_webhook_secret',
-      message: 'Webhook Secret',
-      initial: setup.backend.webhook_secret
-    })).run();
+    console.log('Local Multipass server launched on '+colors.blueBright(setup.instance.ip));
 
     await Multipass.updateStrapiConfig(localinstance, setup.app_config, [
-      [ 'MUX_WEBHOOK_SECRET', setup.backend.webhook_secret ]
+      [ 'ADMIN_JWT_SECRET', setup.secret ]
     ]);
-  }
 
+    await Ngrok.connect();
+
+  // TODO: launch a new Digital Ocean droplet directly from the init script
+  // } else if (setup.instance.type == 'do') {}
+  //
+  } else {
+    // TODO: configure Mux webhooks
+    console.log(
+      fHeading('Manual configuration')
+      +`Your will find your ${colors.magentaBright('cloud-init')} configuration file in:\n`
+      +colors.blueBright(`./${Setup.instancedir()}/cloud-init.yaml`)
+      +'\n\nYou can use it to configure any cloud provider that supports '
+      +'cloud-init, or by using cloud-init manually on your deployment server.'
+    );
+
+    process.exit(0);
+  }
+  
   // TODO: make this run parallel to the webhook prompt to save time to the user
   await Multipass.rebuildStrapi(localinstance);
   await Multipass.restartStrapi(localinstance);

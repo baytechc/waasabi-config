@@ -98,6 +98,8 @@ export async function updateStrapiConfig(instance, configfile, envVars) {
     return console.error('Failed to update server configuration.');
   }
 
+  console.log('Updating server configuration…');
+
   for (const [key,value] of envVars.values()) {
     let command = [ 
       'sudo', 'sed', '-in',
@@ -118,6 +120,8 @@ s~.*~${key}=${value}~p; h; d`,
 
 export async function restartStrapi(instance) {
   // Restart PM2
+  console.log('Restarting backend…');
+
   return await exec(instance, [
     'sudo',
       '-u', 'waasabi',

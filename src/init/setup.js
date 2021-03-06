@@ -22,6 +22,8 @@ export function init() {
 
   // Default app name (e.g. home dir folder for Strapi install)
   setup.app = 'host';
+  // Waasabi backend config file
+  setup.app_config = `/home/waasabi/${setup.app}/.env`;
 
   // Default secret (e.g. for JWT encryption)
   setup.secret = randomBytes(32).toString('base64');
