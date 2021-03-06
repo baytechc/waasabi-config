@@ -267,6 +267,7 @@ function fHeading(s) {
     process.exit(0);
   }
   
+  // TODO: skip this altogether if the URL didn't change from last time
   // TODO: make this run parallel to the webhook prompt to save time to the user
   await Multipass.rebuildStrapi(localinstance);
   await Multipass.restartStrapi(localinstance);

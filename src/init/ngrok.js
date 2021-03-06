@@ -1,9 +1,12 @@
+import fs from 'fs';
 import ngrok from 'ngrok';
 
 import enquirer from 'enquirer';
 
 import setup, * as Setup from './setup.js';
 import * as Multipass from './multipass.js';
+
+import YAML from 'yaml';
 
 
 // TODO: move these to separate module
@@ -15,10 +18,47 @@ function fHeading(s) {
 
 export async function connect() {
   const addr = `${setup.instance.ip}:80`;
-  const url = await ngrok.connect({addr});
 
-  console.log(`Ngrok tunnel for [${addr}] started: `+colors.blueBright(setup.instance.ngrokUrl));
-  
+  // Try loading the local ngrok.yml config file
+  let ngrokYaml = {};
+  try {
+    const yamlContents = await fs.promises.readFile(new URL('../../ngrok.yml', import.meta.url));
+    ngrokYaml = YAML.parse(yamlContents.toString());
+  }
+  catch (e) {
+    console.log('error:', e);
+  }
+
+  const authtoken = ngrokYaml.authtoken || process.env.NGROK_AUTHTOKEN;
+
+  // TODO: try connecting using special domains
+  let url;
+  if (authtoken) {
+    console.log('Connecting using Ngrok authtoken.')
+
+    try {
+      // TODO: make subdomain customizable
+      url = await ngrok.connect({ addr, authtoken, subdomain: 'waasabi-dev' });
+    }
+    catch(e) {
+      console.log('Failed connecting with a custom subdomain.');
+    }
+
+  }
+
+  if (!url) {
+    url = await ngrok.connect({ addr, authtoken });
+  }
+
+  console.log(`Ngrok tunnel for [${addr}] started: `+colors.blueBright(url));
+
+  // If the Ngrok URL is the same (e.g. using a custom subdomain) as in
+  // previous runs, no need to reconfigure incoming addresses, webhooks, etc.
+  if (setup.instance.ngrokUrl === url) {
+    console.log(`Ngrok URL unchanged, skipping reconfiguring endpoints.`);
+    return;
+  }
+
   // TODO: create a separate "updateUrl" function?
   setup.instance.ngrokUrl = url;
   setup.instance.backendUrl = url+'/waasabi';
