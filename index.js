@@ -331,10 +331,21 @@ function fHeading(s) {
     +'You can control the development instance using the Waasabi commandline. '
     +'Type "exit" to stop. Type "help" to learn about the other commands.'
   );
+
+
   while (true) {
-    let command = await (new Input({
-      message: '$>',
-    })).run();
+    let command;
+
+    try {
+      command = await (new Input({
+        message: '$>',
+      })).run();  
+    }
+    catch (e) {
+      // Enquirer throws when it detects Ctrl+C
+      console.log('Please type `exit` and press Enter to exit the Waasabi commandline!');
+    }
+
     if (command === 'exit') process.exit(0);
   }
 
