@@ -70,8 +70,11 @@ function fHeading(s) {
       initial: true,
     })).run();
 
+    // TODO: move this to Setup
     if (loadsettings) {
-      setup = Object.assign({}, JSON.parse(fs.readFileSync(Setup.configfile()).toString()), setup);
+      const savedConfig = JSON.parse(fs.readFileSync(Setup.configfile()).toString());
+
+      Object.assign(setup, savedConfig);
     }
   }
 
