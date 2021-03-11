@@ -35,75 +35,117 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
 
   const startup = initCheck();
   await loading('Checking existing configuration…', startup);
-  layout(`## Domain configuration`);
 
-  setup.domain = await (new Input({
-    name: 'domain',
-    footer: 'Enter your website\'s domain name.',
-    message: 'Domain name',
-    initial: 'my-website.net'
-  })).run();
+  // loading() returns when the configs are available
+  const configs = await startup;
 
-  const host = await (new Snippet({
-    name: 'host',
-    footer:
-      'Choose a subdomain for the Waasabi server. '
-      +'Note: you nay need to manually configure the domain name at your provider.',
-    message: 'Subdomain',
-    required: true,
-    fields: [
-      {
-        name: 'subdomain',
-        message: 'Waasabi Subdomain'
-      },
-    ],
-    template: `\${subdomain:waasabi}.${setup.domain}`
-  })).run();
+  const configOptions = configs.map(({ host, instance }) => {
+    let message = host;
 
-  setup.host = host.result;
-  setup.subdomain = host.values.subdomain;
-
-  if (fs.existsSync(Setup.configfile())) {
-    const loadsettings = await (new Toggle({
-      message: 'Load existing configuration?',
-      initial: true,
-    })).run();
-
-    // TODO: move this to Setup
-    if (loadsettings) {
-      const savedConfig = JSON.parse(fs.readFileSync(Setup.configfile()).toString());
-
-      Object.assign(setup, savedConfig);
+    if (instance) {
+      message += `: local Ubuntu ${instance.release}`;
+  
+      if (instance.state == 'Running') {
+        message += ` (${instance.state})`;
+      }
     }
+  
+    return { name: host, message };
+  });
+
+  let selectedConfig = undefined;
+  if (configOptions) {
+    // Add 'create new' option
+    configOptions.push(
+      { name: 'new', message: 'Create a new Waasabi configuration' }
+    );
+
+    layout(`
+      ## Existing configurations detected
+
+      We have found existing Waasabi configurations on this device. You may continue by loading one of these settings, or create a new one.
+    `);
+
+    // Ask what the user is trying to achieve
+    selectedConfig = await (new Select({
+      name: 'select_config',
+      message: 'Select configuration:',
+      choices: configOptions
+    })).run();
   }
 
-  let localinstance = Setup.instancename();
-  // TODO: move this to Multipass
-  let localhost = await Multipass.find(localinstance);
+  // By default, we configure all options, but let users opt out of that
+  // when restoring existing configurations
+  let configure = true;
 
-  let reconfigure = true;
-  if (localhost) {
-    const localinfo = localhost.info[localinstance];
-    layout(`
-      ## Found existing instance
+  // No existing config, or creating a new
+  if (!configOptions || selectedConfig == 'new') {
+    // Ask what the user is trying to achieve
+    setup.mode = await (new Select({
+      name: 'mode',
+      message: 'What would you like to do?',
+      choices: [
+        { name: 'launch', message: 'Create a local Waasabi instance' },
+        { name: 'setup', message: 'Export configuration for a live installation' },
+        { name: 'develop', message: 'Develop Waasabi components' },
+      ]
+    })).run();
 
-      *${localinfo.release} @ ${localinfo.ipv4}* \`(${localinfo.state})\`
-    `);
-    setup.instance.ip = localinfo.ipv4[0];
+    layout(`## Domain configuration`);
 
-    reconfigure = await (new Toggle({
-      message: 'Reconfigure existing local server?',
-      initial: false,
+    setup.domain = await (new Input({
+      name: 'domain',
+      footer: 'Enter your website\'s domain name.',
+      message: 'Domain name',
+      initial: 'my-website.net'
     })).run();
   
-    if (!reconfigure) {
-      layout(`
-        Using existing configuration…
-      `);  
-    }
+    const host = await (new Snippet({
+      name: 'host',
+      footer:
+        'Choose a subdomain for the Waasabi server. '
+        +'Note: you nay need to manually configure the domain name at your provider.',
+      message: 'Subdomain',
+      required: true,
+      fields: [
+        {
+          name: 'subdomain',
+          message: 'Waasabi Subdomain'
+        },
+      ],
+      template: `\${subdomain:waasabi}.${setup.domain}`
+    })).run();
+  
+    setup.host = host.result;
+    setup.subdomain = host.values.subdomain;
+  
+  // Load an existing config
+  } else {
+    // Load the selected config
+    await Setup.restore(Setup.configfile(selectedConfig));
+
+    setup.mode = await (new Select({
+      name: 'mode',
+      message: 'What would you like to do?',
+      choices: [
+        { name: 'launch', message: 'Launch' },
+        { name: 'develop', message: 'Develop' },
+        { name: 'setup', message: 'Export' },
+      ]
+    })).run();
+ 
+    configure = await (new Toggle({
+      message: 'Would you like to change the existing configuration?',
+      initial: false,
+    })).run();
   }
 
-  if (reconfigure) {
+  // TODO: fix
+  setup.instance.type = 'local';
+
+
+  // Further configuration options
+  if (configure) {
     layout(`
       ## Administrator access
 
@@ -200,23 +242,6 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
     }
 
 
-    layout(`
-      ## Instance type
-
-      Please choose the kind of Waasabi instance that will be created.
-    `);
-
-    setup.instance.type = await (new Select({
-      name: 'instance_type',
-      message: 'Where do you want to create the service?',
-      choices: [
-        { name: 'local',  message: '[LOCAL ] Local development server using Multipass' },
-        { name: 'do',     message: '[ONLINE] Create a new Waasabi droplet on Digital Ocean' },
-        { name: 'manual', message: '[CUSTOM] Manual setup (just generate the init scripts)' },
-        { name: '-', message: 'Skip' }
-      ]
-    })).run();
-
     // Ensure project dir exists
     await fs.promises.mkdir(new URL(Setup.instancedir(), import.meta.url), { recursive: true });
 
@@ -225,7 +250,7 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
     await fs.promises.writeFile(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url), yaml);
 
     await Setup.persist();
-  } // end of: reconfigure?
+  } // end of: configure?
 
 
   // Create a local development instance using multipass
@@ -233,24 +258,16 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
     layout(`## Configuring local Waasabi instance`);
 
     // TODO: do not launch if already exists/running
-    await Multipass.launch(localinstance, fs.readFileSync(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url)));
-
-    // TODO: move to Multipass under a specific function?
-    let localhost = await Multipass.find(localinstance);
-    if (!localhost) {
-      console.error('Failed creating local Waasabi instance.');
-      process.exit(1);
-    }
-
-    const localinfo = localhost.info[localinstance];
-
-    setup.instance.ip = localinfo.ipv4[0];
+    await Multipass.launch(
+      Setup.instancename(),
+      fs.readFileSync(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url))
+    );
 
     layout(`
       Local Multipass server launched on *${setup.instance.ip}*
     `);
 
-    await Multipass.updateStrapiConfig(localinstance, setup.app_config, [
+    await Multipass.configureBackend(setup.app_config, [
       [ 'ADMIN_JWT_SECRET', setup.secret ]
     ]);
 
@@ -276,16 +293,16 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
   
   // TODO: skip this altogether if the URL didn't change from last time
   // TODO: make this run parallel to the webhook prompt to save time to the user
-  await Multipass.rebuildStrapi(localinstance);
-  await Multipass.restartStrapi(localinstance);
+  await Multipass.rebuildBackend();
+  await Multipass.restartBackend();
 
   // Update Live website config & rebuild
   await Multipass.writeFile(
-    localinstance,
+    Setup.instancename(),
     '/home/waasabi/live/website.config.js',
     generateLiveWebsiteConfig(setup)
   );
-  await Multipass.rebuildLiveSite(localinstance);
+  await Multipass.rebuildFrontend();
 
   await Setup.persist();
 

@@ -64,7 +64,7 @@ export async function connect() {
   setup.instance.adminUrl = setup.instance.backendUrl+'/admin';
   setup.instance.webhookUrl = setup.instance.backendUrl+'/event-manager/webhooks';
   
-  await Multipass.updateStrapiConfig(
+  await Multipass.configureBackend(
     Setup.instancename(),
     setup.app_config,
     [
@@ -104,7 +104,7 @@ async function muxWebhookConfig(){
 
   // Update local backend config
   if (setup.instance.type == 'local') {
-    await Multipass.updateStrapiConfig(
+    await Multipass.configureBackend(
       Setup.instancename(),
       setup.app_config,
       [

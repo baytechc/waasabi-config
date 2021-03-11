@@ -29,9 +29,12 @@ export async function launch(instance, cloudinit) {
     multipass.stderr.on('data', (data) => console.log(data.toString(), multipass.spawnargs.join(' ')));
     multipass.on('exit', (code) => {
       console.log(Buffer.concat(outdata).toString());
-      //let res = JSON.parse(Buffer.concat(outdata).toString());
-      //console.log(code, res);
-      resolve(find(instance));
+      // Also update the setup.instance with the instance info
+      if (Setup.instancename() === instance) {
+        return resolve(Setup.findinstance());
+      }
+
+      resolve();
     });
   });
 }
@@ -114,7 +117,7 @@ export async function writeFile(instance, file, contents) {
 
 
 
-export async function updateStrapiConfig(instance, configfile, envVars) {
+export async function configureBackend(configfile, envVars, instance = Setup.instancename()) {
   if (typeof envVars != 'object' || envVars instanceof Array === false) {
     return console.error('Failed to update server configuration.');
   }
@@ -136,10 +139,10 @@ s~.*~${key}=${value}~p; h; d`,
   }
 
   // TODO: replicate locally
-  await restartStrapi(instance);
+  await restartBackend(instance);
 }
 
-export async function restartStrapi(instance) {
+export async function restartBackend(instance = Setup.instancename()) {
   // Restart PM2
   console.log('Restarting backend…');
 
@@ -151,7 +154,7 @@ export async function restartStrapi(instance) {
   ]);
 }
 
-export async function rebuildStrapi(instance) {
+export async function rebuildBackend(instance = Setup.instancename()) {
   // Rebuild the admin UI after a config change
   return await exec(instance, [
     'sudo',
@@ -161,7 +164,7 @@ export async function rebuildStrapi(instance) {
   ]);
 }
 
-export async function rebuildLiveSite(instance) {
+export async function rebuildFrontend(instance = Setup.instancename()) {
   // Rebuild Live website
   return await exec(instance, [
     'sudo',

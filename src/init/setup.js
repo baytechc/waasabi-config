@@ -1,6 +1,9 @@
 import fs from 'fs';
 import { randomBytes } from 'crypto';
 
+import { layout } from './content-formatter.js';
+import { find as multipassFind } from './multipass.js';
+
 const DEFAULT_STRAPI_VERSION = '3.4.6';
 
 
@@ -35,23 +38,57 @@ export function init() {
   setup.instance = {};
 }
 
-// Config settings
-export async function persist() {
-  await fs.promises.writeFile(configfile(), JSON.stringify(setup, null, 2));
-
-  console.log(
-    `Configuration saved in: instance/${setup.host}`
-  );
+export async function list() {
+  return await fs.promises.readdir(new URL(`../../instance/`, import.meta.url));
 }
 
-export function instancedir() {
-  return 'instance/' + setup.host;
+// Save configuration
+export async function persist(filename = configfile()) {
+  // TODO: ensure instance config directory exists
+  await fs.promises.writeFile(filename, JSON.stringify(setup, null, 2));
+
+  layout(`Configuration saved in: *${filename}*`);
 }
 
-export function configfile() {
-  return new URL(`../../${instancedir()}/setup.json`, import.meta.url);
+// Load configuration
+export async function restore(filename = configfile()) {
+  const fileContents = await fs.promises.readFile(filename);
+  const savedConfig = JSON.parse(fileContents.toString());
+
+  Object.assign(setup, savedConfig);
+
+  // Update local instance information
+  await findinstance();
+
+  layout(`Configuration restored from: *./instance/${setup.host}*`);
 }
 
-export function instancename() {
-  return 'waasabi-'+setup.host.replace(/\./g,'-')
+
+export function instancedir(host = setup.host) {
+  // TODO: Should throw if the path is not valid (e.g. setup.host is unset)
+  return 'instance/' + host;
+}
+
+export function configfile(host = setup.host) {
+  // TODO: if instancedir() throws, should throw
+  return new URL(`../../${instancedir(host)}/setup.json`, import.meta.url);
+}
+
+export function instancename(host = setup.host) {
+  return 'waasabi-'+host.replace(/\./g,'-');
+}
+
+export async function findinstance(name = instancename()) {
+  const instance = await multipassFind(name);
+
+  delete setup.instance;
+
+  if (!instance) return;
+
+  // Information returned from multipass find
+  setup.instance = instance.info[name];
+
+  setup.instance.ip = setup.instance.ipv4[0];
+
+  return setup.instance;
 }
