@@ -1,4 +1,5 @@
 import colors from 'ansi-colors';
+import ora from 'ora';
 
 
 // TODO: create separate module for formatting
@@ -114,4 +115,18 @@ export function layout(s) {
   }).join('');
 
   console.log(output);
+}
+
+
+export function clear() {
+  console.clear();
+}
+
+
+export async function loading(message, task) {
+  const spinner = ora(message).start();
+
+  await task;
+
+  spinner.stop();
 }

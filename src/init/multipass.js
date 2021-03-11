@@ -57,6 +57,27 @@ export async function find(instance) {
   });
 }
 
+export async function list() {
+  const multipass = spawn('multipass', ['list', '--format', 'json']);
+
+  let outdata = [];
+
+  return new Promise((resolve, reject) => {
+    multipass.stdout.on('data', (data) => outdata.push(data));
+
+    multipass.on('exit', (code) => {
+      let res = undefined;
+
+      try {
+        res = JSON.parse(Buffer.concat(outdata).toString());
+      }
+      catch(e) {}
+
+      resolve(res);
+    });
+  });
+}
+
 export async function exec(instance, command, commandInput) {
   const multipass = spawn('multipass', ['exec', instance, '--'].concat(command));
 
