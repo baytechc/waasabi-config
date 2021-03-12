@@ -140,10 +140,6 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
     })).run();
   }
 
-  // TODO: fix
-  setup.instance.type = 'local';
-
-
   // Further configuration options
   if (configure) {
     layout(`
@@ -254,28 +250,32 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
 
 
   // Create a local development instance using multipass
-  if (setup.instance.type == 'local') {
-    layout(`## Configuring local Waasabi instance`);
+  if (!setup.instance) {
+    layout(`## Launching new local Waasabi instance`);
 
-    // TODO: do not launch if already exists/running
     await Multipass.launch(
       Setup.instancename(),
       fs.readFileSync(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url))
     );
+    // TODO: Launch Error handling
+  }
 
-    layout(`
-      Local Multipass server launched on *${setup.instance.ip}*
-    `);
+  layout(`
+    Local Multipass instance running on *${setup.instance.ip}*
+  `);
 
-    await Multipass.configureBackend(setup.app_config, [
-      [ 'ADMIN_JWT_SECRET', setup.secret ]
-    ]);
 
-    await Ngrok.connect();
+  layout(`## Configuring local Waasabi instance`);
 
-  // TODO: launch a new Digital Ocean droplet directly from the init script
-  // } else if (setup.instance.type == 'do') {}
-  //
+  // TODO: when do we need to do this exactly?
+  await Multipass.configureBackend(setup.app_config, [
+    [ 'ADMIN_JWT_SECRET', setup.secret ]
+  ]);
+
+  await Ngrok.connect();
+
+  // TODO: This is the "Export" option now
+  /*
   } else {
     // TODO: configure Mux webhooks
     layout(`
@@ -290,6 +290,7 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
 
     process.exit(0);
   }
+  */
   
   // TODO: skip this altogether if the URL didn't change from last time
   // TODO: make this run parallel to the webhook prompt to save time to the user

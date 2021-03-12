@@ -65,7 +65,6 @@ export async function connect() {
   setup.instance.webhookUrl = setup.instance.backendUrl+'/event-manager/webhooks';
   
   await Multipass.configureBackend(
-    Setup.instancename(),
     setup.app_config,
     [
       [ 'BACKEND_URL', setup.instance.backendUrl ],
@@ -89,7 +88,7 @@ async function muxWebhookConfig(){
 
     You will need to point the webhooks to this URL:
     
-    setup.instance.webhookUrl
+    ${setup.instance.webhookUrl}
 
     Once the webhook is configured, you will receive a Signing Secret from Mux.
     This is used to ensure noone else can fake these webhook requests.
@@ -105,7 +104,6 @@ async function muxWebhookConfig(){
   // Update local backend config
   if (setup.instance.type == 'local') {
     await Multipass.configureBackend(
-      Setup.instancename(),
       setup.app_config,
       [
         [ 'MUX_WEBHOOK_SECRET', setup.backend.webhook_secret ]

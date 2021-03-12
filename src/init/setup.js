@@ -89,6 +89,7 @@ export async function findinstance(name = instancename()) {
   setup.instance = instance.info[name];
 
   setup.instance.ip = setup.instance.ipv4[0];
+  setup.instance.type = 'local';
 
   return setup.instance;
 }
