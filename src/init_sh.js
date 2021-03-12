@@ -20,7 +20,7 @@ systemctl start pm2-waasabi
 echo 'Creating new Waasabi instance'
 sudo -u waasabi bash -c '
   cd ~/
-  npx create-strapi-app${setup.strapiVersion} ${setup.app} --template flaki/waasabi --no-run --quickstart
+  npx create-strapi-app${setup.strapiVersion} ${setup.app} --template baytechc/waasabi --no-run --quickstart
   cd ${setup.app}
   npm install
   npm dedupe
@@ -46,7 +46,7 @@ sudo -u waasabi bash -c '
 sudo -u waasabi bash -c '
   cd ~/
   # TODO: make the clone source configurable
-  git clone https://github.com/flaki/waasabi-live.git live
+  git clone https://github.com/baytechc/waasabi-live.git live
   cd live
 
   # TODO: figure out the best place to update the config
