@@ -318,7 +318,7 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
 
     You can access the administration interface on the link below:
 
-    ${setup.instance.adminUrl}
+    ${setup.backend.adminUrl}
 
     ## Waasabi commandline
 
