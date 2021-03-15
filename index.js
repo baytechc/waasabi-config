@@ -333,7 +333,15 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
       console.log('Please type `exit` and press Enter to exit the Waasabi commandline!');
     }
 
-    if (command === 'exit') process.exit(0);
+    // Exit Waasabi commandline
+    if (command === 'q' || command === 'exit') {
+      process.exit(0);
+    }
+
+    // Restart backend
+    if (command === 'r') {
+      await Multipass.restartBackend();
+    }
   }
 
 })().catch(console.error);

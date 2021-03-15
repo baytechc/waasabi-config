@@ -150,7 +150,7 @@ export async function restartBackend(instance = Setup.instancename()) {
     'sudo',
       '-u', 'waasabi',
     'bash',
-      '-c', 'pm2 --update-env restart all'
+      '-c', 'pm2 -m --update-env restart all'
   ]);
 }
 
