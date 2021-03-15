@@ -249,8 +249,12 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
   } // end of: configure?
 
 
+  // Create a snapshot of the current config so we can track changes
+  const snapshot = Setup.trackChanges();
+
+
   // Create a local development instance using multipass
-  if (!setup.instance) {
+  if (setup.instance.type !== 'local') {
     layout(`## Launching new local Waasabi instance`);
 
     await Multipass.launch(
@@ -292,20 +296,22 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
   }
   */
   
-  // TODO: skip this altogether if the URL didn't change from last time
-  // TODO: make this run parallel to the webhook prompt to save time to the user
-  await Multipass.rebuildBackend();
-  await Multipass.restartBackend();
+  // Rebuild/restart the multipass backend & frontend when config changes
+  if (snapshot.changed()) {
+    await Setup.persist();
 
-  // Update Live website config & rebuild
-  await Multipass.writeFile(
-    Setup.instancename(),
-    '/home/waasabi/live/website.config.js',
-    generateLiveWebsiteConfig(setup)
-  );
-  await Multipass.rebuildFrontend();
+    // TODO: make this run parallel to the webhook prompt to save time to the user
+    await Multipass.rebuildBackend();
+    await Multipass.restartBackend();
 
-  await Setup.persist();
+    // Update frontend config & rebuild
+    await Multipass.writeFile(
+      Setup.instancename(),
+      '/home/waasabi/live/website.config.js',
+      generateLiveWebsiteConfig(setup)
+    );
+    await Multipass.rebuildFrontend();
+  }
 
   layout(`
     ## Waasabi is up & running!

@@ -1,7 +1,7 @@
 // TODO: make configurable
 export default (setup) => 'export default '+JSON.stringify({
   // The URL of the Waasabi backend
-  WAASABI_BACKEND: setup?.instance.backendUrl ?? `https://${setup.host}/waasabi`,
+  WAASABI_BACKEND: setup.backend.url ?? `https://${setup.host}/waasabi`,
 
   // GraphQL WebSocket connection string to the Waasabi backend
   WAASABI_GRAPHQL_WS: `wss://${setup.host}/graphql`,

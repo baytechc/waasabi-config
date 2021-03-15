@@ -1,8 +1,11 @@
 import fs from 'fs';
 import { randomBytes } from 'crypto';
 
+import { isEqual as _equal, cloneDeep as _clone } from 'lodash-es';
+
 import { layout } from './content-formatter.js';
 import { find as multipassFind } from './multipass.js';
+
 
 const DEFAULT_STRAPI_VERSION = '3.4.6';
 
@@ -81,15 +84,35 @@ export function instancename(host = setup.host) {
 export async function findinstance(name = instancename()) {
   const instance = await multipassFind(name);
 
-  delete setup.instance;
+  delete setup._instance;
+
+  setup.instance = {};
 
   if (!instance) return;
 
   // Information returned from multipass find
-  setup.instance = instance.info[name];
+  setup._instance = instance.info[name];
 
-  setup.instance.ip = setup.instance.ipv4[0];
-  setup.instance.type = 'local';
+  setup.instance = {
+    ip: setup._instance.ipv4[0],
+    type: 'local',
+  };
 
   return setup.instance;
+}
+
+// Makes a snapshot of the current setup and returns a function
+// which can compare the snapshot with the current configuration
+// and detect changes.
+export function trackChanges() {
+  const snapshot = _clone(setup);
+
+  // The caller can use the .changed() method on the returned object
+  // to check if the configuration has changed since the snapshot
+  // was taken.
+  return ({
+    changed() {
+      return _equal(setup, snapshot) === false;
+    }
+  });
 }
