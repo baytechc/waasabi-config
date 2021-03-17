@@ -1,6 +1,10 @@
 import fetch from 'node-fetch';
 
 import generateInitSh from './init_sh.js';
+import generateInitLogsSh from './init_logs_sh.js';
+import installPM2 from './init_pm2_sh.js';
+import generateBackendConfig from './backend_config_sh.js';
+import generateLivepageConfig from './livepage_config_sh.js';
 import generateNginxConfig from './nginx_config.js';
 
 
@@ -63,14 +67,42 @@ export default async (setup) => {
     { path: '/etc/nginx/sites-available/default', content: nginxConfig }
   );
 
-  let initscript = generateInitSh(setup);
-  cloudinit.write_files.push(
-    { path: '/root/init.sh', permissions: '0700', content: initscript }
-  );
+  cloudinit.write_files.push({
+    path: '/root/init.sh',
+    permissions: '0700',
+    content: generateInitSh(setup)
+  });
+  cloudinit.write_files.push({
+    path: '/root/init_logs.sh',
+    permissions: '0700',
+    content: generateInitLogsSh(setup)
+  });
+  cloudinit.write_files.push({
+    path: '/root/init_pm2.sh',
+    permissions: '0700',
+    content: installPM2(setup)
+  });
+  cloudinit.write_files.push({
+    path: '/root/init_backend_config.sh',
+    permissions: '0700',
+    content: generateBackendConfig(setup)
+  });
+  cloudinit.write_files.push({
+    path: '/root/init_livepage_config.sh',
+    permissions: '0700',
+    content: generateLivepageConfig(setup)
+  });
 
-  cloudinit.runcmd = [
-    [ '/root/init.sh' ]
-  ];
+  cloudinit.runcmd = [];
+
+  if (setup.mode === 'develop') {
+    cloudinit.runcmd.push([ '/root/init_logs.sh' ]);
+    cloudinit.runcmd.push([ '/root/init_pm2.sh' ]);
+
+  } else {
+    cloudinit.runcmd.push([ '/root/init.sh' ]);
+
+  }
 
   cloudinit.output = {
     all: '| tee -a /var/log/cloud-init-output.log'

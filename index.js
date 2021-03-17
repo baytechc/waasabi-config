@@ -4,7 +4,7 @@ import fs from 'fs';
 
 
 import generateCloudInit from './src/cloud_init.js';
-import generateLiveWebsiteConfig from './src/live_website_config.js';
+import generateLiveWebsiteConfig from './src/livepage_website_config.js';
 
 
 const { Input, Snippet, Toggle, Select, Password } = enquirer;
@@ -130,7 +130,7 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
       choices: [
         { name: 'launch', message: 'Launch' },
         { name: 'develop', message: 'Develop' },
-        { name: 'setup', message: 'Export' },
+        { name: 'export', message: 'Export' },
       ]
     })).run();
  
@@ -239,11 +239,8 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
 
 
     // Ensure project dir exists
-    await fs.promises.mkdir(new URL(Setup.instancedir(), import.meta.url), { recursive: true });
-
-    // Cloud Init YAML
-    const yaml = YAML.stringify(await generateCloudInit(setup));
-    await fs.promises.writeFile(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url), yaml);
+    //await fs.promises.mkdir(new URL(Setup.instancedir(), import.meta.url), { recursive: true });
+    //persist() should take care of this
 
     await Setup.persist();
   } // end of: configure?
@@ -254,33 +251,51 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
 
 
   // Create a local development instance using multipass
-  if (setup.instance.type !== 'local') {
+  if (setup.mode !== 'export' && !setup.instance) {
     layout(`## Launching new local Waasabi instance`);
+
+    const cloudconfig = YAML.stringify(await generateCloudInit(setup));
 
     await Multipass.launch(
       Setup.instancename(),
-      fs.readFileSync(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url))
+      cloudconfig
     );
-    // TODO: Launch Error handling
   }
 
   layout(`
     Local Multipass instance running on *${setup.instance.ip}*
   `);
 
+  // Configure development mount points
+  // TODO: allow configuring
+  // TODO: allow reconfiguration
+  if (setup.mode === 'develop') {
+    layout(`## Mounting development folders`);
 
+    const changes = await Multipass.mountDevFolders();
+
+    //TODO proper reconfiguration on first launch only
+
+  }
+  
   layout(`## Configuring local Waasabi instance`);
 
   // TODO: when do we need to do this exactly?
-  await Multipass.configureBackend(setup.app_config, [
-    [ 'ADMIN_JWT_SECRET', setup.secret ]
-  ]);
+  //await Multipass.configureBackend(setup.app_config, [
+  //  [ 'ADMIN_JWT_SECRET', setup.secret ]
+  //]);
 
   await Ngrok.connect();
 
   // TODO: This is the "Export" option now
   /*
   } else {
+    setup.prod = true;
+
+    // Cloud Init YAML
+    const yaml = YAML.stringify(await generateCloudInit(setup));
+    await fs.promises.writeFile(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url), yaml);
+
     // TODO: configure Mux webhooks
     layout(`
       ## Manual configuration

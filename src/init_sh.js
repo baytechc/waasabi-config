@@ -1,61 +1,55 @@
-import middlewarejs from './strapi_config_middleware.js';
-import serverjs from './strapi_config_server.js';
-import pm2config from './pm2_config.js';
-import websiteconfigjs from './live_website_config.js';
-
-const b64 = str => `echo "${Buffer.from(str).toString('base64')}" | base64 -d`;
-
 export default (setup) => `
 # Waasabi setup
+/root/init_logs.sh
+
+
+echo -n 'Configuring LetsEncrypt... ' >> /var/log/waasabi_init.log
 
 # Certbot (generate LetsEncrypt SSL certificate)
-${setup.instance.type=='local' ? '#' :''}certbot -n --nginx -d ${setup.host} --agree-tos --redirect -m ${setup.admin_email}
+${setup.prod ? '#' :''}certbot -n --nginx -d ${setup.host} --agree-tos --redirect -m ${setup.admin_email}
+
+echo '\u2713  DONE' >> /var/log/waasabi_init.log
+
 
 # Install PM2
-npm install pm2 -g
-env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u waasabi --hp /home/waasabi
-systemctl start pm2-waasabi
+/root/init_pm2.sh
+
 
 # Create a Waasabi instance from the Strapi template
-echo 'Creating new Waasabi instance'
+echo -n 'Generating backend... ' >> /var/log/waasabi_init.log
+
 sudo -u waasabi bash -c '
   cd ~/
   npx create-strapi-app${setup.strapiVersion} ${setup.app} --template baytechc/waasabi --no-run --quickstart
-  cd ${setup.app}
-  npm install
-  npm dedupe
 '
 
-# Strapi config & daemonize through PM2
-echo 'Configuring Waasabi instance'
-sudo -u waasabi bash -c '
-  cd ~/${setup.app}
-  ${b64(middlewarejs())} > config/middleware.js
-  ${b64(serverjs())} > config/server.js
-  echo "" > ".env"
-  # the user must exist first
-  # npx strapi admin:reset-user-password --email=${setup.admin_email} --password=${setup.admin_password}
-  npx strapi build
+echo '\u2713  DONE' >> /var/log/waasabi_init.log
 
-  ${b64(pm2config())} > pm2.yaml
-  pm2 start pm2.yaml --env=production
-  pm2 save
-'
+
+# Configure backend
+/root/init_backend_config.sh
+
 
 # Install live page that will be served at the host root
+echo -n 'Generating live page... ' >> /var/log/waasabi_init.log
+
 sudo -u waasabi bash -c '
   cd ~/
   # TODO: make the clone source configurable
   git clone https://github.com/baytechc/waasabi-live.git live
-  cd live
-
-  # TODO: figure out the best place to update the config
-  ${b64(websiteconfigjs(setup))} > website.config.js
-
-  # Generate the site
-  npm install && npm run build
 '
 
+echo '\u2713  DONE' >> /var/log/waasabi_init.log
+
+
+# Configure live page
+/root/init_livepage_config.sh
+
+
 #TODO: matrix bot
+
+
+echo '\u2713  Waasabi initialization complete' >> /var/log/waasabi_init.log
+
 
 `.trim()+'\n';

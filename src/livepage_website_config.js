@@ -4,7 +4,7 @@ export default (setup) => 'export default '+JSON.stringify({
   WAASABI_BACKEND: setup.backend.url ?? `https://${setup.host}/waasabi`,
 
   // GraphQL WebSocket connection string to the Waasabi backend
-  WAASABI_GRAPHQL_WS: `wss://${setup.host}/graphql`,
+  WAASABI_GRAPHQL_WS: setup.backend.gql ?? `wss://${setup.host}/graphql`,
 
   // Is chat enabled? What chat system is used?
   WAASABI_CHAT_ENABLED: true,

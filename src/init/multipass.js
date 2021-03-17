@@ -1,8 +1,10 @@
 import { spawn } from 'child_process';
-//import { Readable } from 'stream';
+import { layout } from './content-formatter.js';
 
 import setup, * as Setup from './setup.js';
 
+import backendconfigsh from '../backend_config_sh.js';
+import livepageconfigsh from '../livepage_config_sh.js';
 
 
 export async function launch(instance, cloudinit) {
@@ -46,6 +48,7 @@ export async function find(instance) {
 
   return new Promise((resolve, reject) => {
     multipass.stdout.on('data', (data) => outdata.push(data));
+    // TODO: don't write to stderr
     multipass.stderr.on('data', (data) => console.log(data.toString()));
     multipass.on('exit', (code) => {
       let res = undefined;
@@ -105,7 +108,6 @@ export async function exec(instance, command, commandInput) {
       catch(e) {
         console.log(res);
       }
-
       resolve(res);
     });
   });
@@ -115,7 +117,86 @@ export async function writeFile(instance, file, contents) {
   return await exec(instance, [ 'sudo', 'tee', file ], contents);
 }
 
+export async function mount(options, instance = Setup.instancename()) {
+  const { source, target, uid, gid } = options;
+  const cmd = ['mount'];
 
+  if (uid) cmd.push('-u', uid+':1000');
+  if (gid) cmd.push('-g', gid+':1000');
+
+  cmd.push(source);
+  cmd.push(`${instance}:${target}`);
+
+  const multipass = spawn('multipass', cmd);
+
+  return new Promise((resolve, reject) => {
+    if (!multipass) return reject('Failed multipass command: '+cmd.join(' '));
+
+    multipass.stdout.pipe(process.stdout);
+    multipass.stderr.pipe(process.stderr);
+
+    multipass.on('exit', (code) => {
+      if (code) return reject('Failed multipass command: '+cmd.join(' '));
+      resolve();
+    });
+  });
+}
+
+export async function mountDevFolders(instance = Setup.instancename()) {
+  const uid = process.getuid();
+  const gid = process.getgid();
+
+  const mounts = setup._instance.mounts;
+  const folders = [
+    {
+      source: '/home/flaki/data/multipass-waasabi-host',
+      target: `/home/waasabi/${setup.app}`,
+      async after() {
+        console.log('Reconfiguring backend…');
+        await exec(instance, ['bash'], backendconfigsh(setup));
+      }
+    },
+    {
+      source: '/home/flaki/data/waasabi-live',
+      target: '/home/waasabi/live',
+      async after() {
+        console.log('Reconfiguring live page…');
+        await exec(instance, ['bash'], livepageconfigsh(setup));
+      }
+    }
+  ];
+
+  let changed = false;
+ 
+  for (let { source, target, after } of folders) {
+    // Already mounted? Don't remount
+    // TODO: if current <source_path> is different source than remount
+    if (mounts[target]) {
+      source = mounts[target].source_path;
+
+    } else {
+      await mount({
+        uid, gid,
+        source, target
+      }, instance);
+//ARTIFICIAL DELAY
+await new Promise(r => setTimeout(r, 3000))
+ 
+      // Run hook after changing the mounted folder
+      await after();
+
+      changed = true;
+    }
+
+    layout(`*${source}* \u2192  *${target}*`);
+  }
+
+  // Reload instance info
+  if (changed) {
+    await Setup.findinstance(instance);
+    return true;
+  }
+}
 
 export async function configureBackend(configfile, envVars, instance = Setup.instancename()) {
   if (typeof envVars != 'object' || envVars instanceof Array === false) {

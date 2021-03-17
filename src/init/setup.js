@@ -85,8 +85,7 @@ export async function findinstance(name = instancename()) {
   const instance = await multipassFind(name);
 
   delete setup._instance;
-
-  setup.instance = {};
+  delete setup.instance;
 
   if (!instance) return;
 

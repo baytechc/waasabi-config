@@ -63,6 +63,7 @@ export async function connect() {
   // TODO: create a separate "updateUrl" function?
   setup.ngrok.url = url;
   setup.backend.url = url+'/waasabi';
+  setup.backend.gql = url.replace(/^http[s]?/,'wss')+'/graphql';
   setup.backend.adminUrl = setup.backend.url+'/admin';
   setup.backend.webhookUrl = setup.backend.url+'/event-manager/webhooks';
   
