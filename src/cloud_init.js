@@ -1,10 +1,8 @@
 import fetch from 'node-fetch';
+import YAML from 'yaml';
 
 import generateInitSh from './init_sh.js';
-import generateInitLogsSh from './init_logs_sh.js';
-import installPM2 from './init_pm2_sh.js';
-import generateBackendConfig from './backend_config_sh.js';
-import generateLivepageConfig from './livepage_config_sh.js';
+import { generateYaml as generateWaasabiInitYml } from './waasabi_init.js';
 import generateNginxConfig from './nginx_config.js';
 
 
@@ -45,7 +43,8 @@ async function configurePackages(setup) {
     'nginx',
     'certbot',
     'python3-certbot-nginx',
-    'nodejs'
+    'nodejs',
+    'unzip', /* needed for the Deno installer */
   ];
 
   const package_update = true;
@@ -53,7 +52,7 @@ async function configurePackages(setup) {
   return { apt, packages, package_update };
 }
 
-export default async (setup) => {
+export default async function generate(setup) {
   const cloudinit = {};
 
   cloudinit.users = [ defaultUser(setup) ];
@@ -73,24 +72,9 @@ export default async (setup) => {
     content: generateInitSh(setup)
   });
   cloudinit.write_files.push({
-    path: '/root/init_logs.sh',
+    path: '/root/waasabi-init.yml',
     permissions: '0700',
-    content: generateInitLogsSh(setup)
-  });
-  cloudinit.write_files.push({
-    path: '/root/init_pm2.sh',
-    permissions: '0700',
-    content: installPM2(setup)
-  });
-  cloudinit.write_files.push({
-    path: '/root/init_backend_config.sh',
-    permissions: '0700',
-    content: generateBackendConfig(setup)
-  });
-  cloudinit.write_files.push({
-    path: '/root/init_livepage_config.sh',
-    permissions: '0700',
-    content: generateLivepageConfig(setup)
+    content: generateWaasabiInitYml(setup)
   });
 
   cloudinit.runcmd = [];
@@ -109,4 +93,10 @@ export default async (setup) => {
   };
 
   return cloudinit;
+}
+
+export async function generateYaml(setup) {
+  const g = await generate(setup);
+
+  return "#cloud-config\n" + YAML.stringify(g);
 }

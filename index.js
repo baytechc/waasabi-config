@@ -1,11 +1,11 @@
 import enquirer from 'enquirer';
-import YAML from 'yaml';
 import fs from 'fs';
 
 
-import generateCloudInit from './src/cloud_init.js';
+import { generateYaml as generateCloudInitYml } from './src/cloud_init.js';
 import generateLiveWebsiteConfig from './src/livepage_website_config.js';
 
+import { generateYaml as generateWaasabiInitYml } from './src/waasabi_init.js';
 
 const { Input, Snippet, Toggle, Select, Password } = enquirer;
 
@@ -86,7 +86,7 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
       message: 'What would you like to do?',
       choices: [
         { name: 'launch', message: 'Create a local Waasabi instance' },
-        { name: 'setup', message: 'Export configuration for a live installation' },
+        { name: 'export', message: 'Export configuration for a live installation' },
         { name: 'develop', message: 'Develop Waasabi components' },
       ]
     })).run();
@@ -254,13 +254,48 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
   if (setup.mode !== 'export' && !setup.instance) {
     layout(`## Launching new local Waasabi instance`);
 
-    const cloudconfig = YAML.stringify(await generateCloudInit(setup));
-
     await Multipass.launch(
       Setup.instancename(),
-      cloudconfig
+      await generateCloudInitYml(setup)
     );
   }
+
+
+  // Export requested
+  if (setup.mode === 'export') {
+    setup.prod = true;
+
+    //TODO: switch backend urls to the production ones
+
+    // Cloud Init YAML
+    await fs.promises.writeFile(
+      new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url),
+      await generateCloudInitYml(setup)
+    );
+
+    const waasabiInitYaml = generateWaasabiInitYml(setup);
+    
+    // Waasabi Init YAML
+    await fs.promises.writeFile(
+      new URL(`${Setup.instancedir()}/waasabi-init.yml`, import.meta.url),
+      waasabiInitYaml
+    );
+
+
+    // TODO: configure Mux webhooks
+    layout(`
+      ## Manual configuration
+
+      Your will find your \`cloud-init\` configuration file in:
+
+      \`./${Setup.instancedir()}/cloud-init.yml\`
+
+      You can use it to configure any cloud provider that supports cloud-init, or by using cloud-init manually on your deployment server.
+    `);
+
+    process.exit(0);
+  }
+  
 
   layout(`
     Local Multipass instance running on *${setup.instance.ip}*
@@ -275,9 +310,10 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
     const changes = await Multipass.mountDevFolders();
 
     //TODO proper reconfiguration on first launch only
-
   }
-  
+
+
+  // Local instance (launch/develop)
   layout(`## Configuring local Waasabi instance`);
 
   // TODO: when do we need to do this exactly?
@@ -287,29 +323,6 @@ import { layout, clear, loading } from './src/init/content-formatter.js';
 
   await Ngrok.connect();
 
-  // TODO: This is the "Export" option now
-  /*
-  } else {
-    setup.prod = true;
-
-    // Cloud Init YAML
-    const yaml = YAML.stringify(await generateCloudInit(setup));
-    await fs.promises.writeFile(new URL(`${Setup.instancedir()}/cloud-init.yml`, import.meta.url), yaml);
-
-    // TODO: configure Mux webhooks
-    layout(`
-      ## Manual configuration
-
-      Your will find your \`cloud-init\` configuration file in:
-
-      \`./${Setup.instancedir()}/cloud-init.yaml\`
-
-      You can use it to configure any cloud provider that supports cloud-init, or by using cloud-init manually on your deployment server.
-    `);
-
-    process.exit(0);
-  }
-  */
   
   // Rebuild/restart the multipass backend & frontend when config changes
   if (snapshot.changed()) {
