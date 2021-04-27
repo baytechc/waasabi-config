@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import YAML from 'yaml';
 
 import generateInitSh from './init_sh.js';

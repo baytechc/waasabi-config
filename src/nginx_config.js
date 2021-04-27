@@ -3,7 +3,7 @@ server {
   listen 80;
   listen [::]:80;
 
-  ${setup.prod ? '' : '#'}server_name ${setup.host};
+  server_name ${setup.host} ${!setup.prod || setup.nginx_all ? '_' : ''};
 
   # Live page root
   root /home/waasabi/live/_site/;

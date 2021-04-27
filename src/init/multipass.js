@@ -6,11 +6,15 @@ import setup, * as Setup from './setup.js';
 import backendconfigsh from '../backend_config_sh.js';
 import livepageconfigsh from '../livepage_config_sh.js';
 
+import {writeFileSync} from 'fs';
+
 
 export async function launch(instance, cloudinit) {
   // Launch a new multipass instance, pass cloud-init config via stdin
   // $> multipass launch --disk 10G --mem 2G --name waasabi lts --cloud-init -
   const multipass = spawn('multipass', ['launch', '-c','2', '-d','10G', '-m','2G', '-n',instance, '--cloud-init', '-', 'lts']);
+
+  console.log('$>', multipass.spawnargs.join(' '));
 
   // Write cloudinit config string & close the stdin
   multipass.stdin.end(cloudinit);
@@ -28,15 +32,28 @@ export async function launch(instance, cloudinit) {
     });
     multipass.stdout.pipe(process.stdout);
 
-    multipass.stderr.on('data', (data) => console.log(data.toString(), multipass.spawnargs.join(' ')));
-    multipass.on('exit', (code) => {
-      console.log(Buffer.concat(outdata).toString());
+    multipass.stderr.on('data', (data) => {
+      console.log(data.toString());
+    });
+
+    multipass.on('exit', async (code) => {
+      console.log('Multipass Launch finished with exit code #'+code);
+
+      writeFileSync('multipasslaunch.log', Buffer.concat(outdata));
+
       // Also update the setup.instance with the instance info
       if (Setup.instancename() === instance) {
-        return resolve(Setup.findinstance());
+        try {
+          const instanceInfo = await Setup.findinstance();
+          console.log(instanceInfo);
+          resolve(instanceInfo);
+        }
+        catch(e) {
+          reject(e);
+        }
       }
 
-      resolve();
+      reject(new Error('No instance was launched.'));
     });
   });
 }
@@ -48,11 +65,23 @@ export async function find(instance) {
 
   return new Promise((resolve, reject) => {
     multipass.stdout.on('data', (data) => outdata.push(data));
-    // TODO: don't write to stderr
-    multipass.stderr.on('data', (data) => console.log(data.toString()));
-    multipass.on('exit', (code) => {
-      let res = undefined;
 
+    let err = '';
+    multipass.stderr.on('data', (data) => err += data.toString());
+    multipass.on('exit', (code) => {
+      let res = void 0;
+
+      // If the instance doesn't exist find resolves to 'undefined'
+      if (err) {
+        if (err.includes('does not exist')) {
+          return resolve(res);
+        }
+
+        // Other error, reject
+        if (code > 0) return reject(new Error(err));
+      }
+
+      // Try parsing the output JSON and use it as a result
       try {
         res = JSON.parse(Buffer.concat(outdata).toString());
       }

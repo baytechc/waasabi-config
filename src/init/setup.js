@@ -1,4 +1,6 @@
 import fs from 'fs';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
 
 import { isEqual as _equal, cloneDeep as _clone } from 'lodash-es';
@@ -48,7 +50,16 @@ export async function list() {
 // Save configuration
 export async function persist(filename = configfile()) {
   // TODO: ensure instance config directory exists
-  await fs.promises.writeFile(filename, JSON.stringify(setup, null, 2));
+  try {
+    await fs.promises.writeFile(filename, JSON.stringify(setup, null, 2));
+  }
+  catch(e) {
+    // Ensure project dir exists
+    const dir = dirname(filename instanceof URL ? fileURLToPath(filename) : filename);
+    await fs.promises.mkdir(dir, { recursive: true });
+
+    return persist(filename);
+  }
 
   layout(`Configuration saved in: *${filename}*`);
 }
@@ -82,7 +93,14 @@ export function instancename(host = setup.host) {
 }
 
 export async function findinstance(name = instancename()) {
-  const instance = await multipassFind(name);
+  let instance;
+  try {
+    instance = await multipassFind(name);
+  }
+  catch(e) {
+    console.error(e);
+    throw e;
+  }
 
   delete setup._instance;
   delete setup.instance;

@@ -24,18 +24,33 @@ export async function connect() {
   }
 
   const authtoken = ngrokYaml.authtoken || process.env.NGROK_AUTHTOKEN;
+  const hostname = ngrokYaml.tunnels.waasabi.hostname || process.env.NGROK_HOST;
 
   // TODO: try connecting using special domains
+  let config = { addr, authtoken };
   let url;
   if (authtoken) {
     layout(`Connecting using Ngrok authtoken.`);
 
+    if (hostname) {
+      config.hostname = hostname;
+
+      if (hostname.includes('eu.ngrok.io')) config.region = 'eu';
+
+      console.log(`Using custom host: ${config.hostname} (${config.region ?? 'us'})`);
+
+    } else {
+      config.subdomain = 'waasabi-dev';
+      console.log(`Using custom subdomain: ${config.subdomain}.ngrok.io`);
+    }
+
     try {
       // TODO: make subdomain customizable
-      url = await ngrok.connect({ addr, authtoken, subdomain: 'waasabi-dev' });
+      url = await ngrok.connect(config);
     }
     catch(e) {
       console.log('Failed connecting with a custom subdomain.');
+      throw e;
     }
 
   }
@@ -44,21 +59,15 @@ export async function connect() {
     url = await ngrok.connect({ addr, authtoken });
   }
 
-  layout(`
-    The development server at *${addr}* is now accessible via:
-  
-    ${url}
-  `);
+  // Ngrok config object
+  if (!setup.ngrok) setup.ngrok = {};
 
   // If the Ngrok URL is the same (e.g. using a custom subdomain) as in
   // previous runs, no need to reconfigure incoming addresses, webhooks, etc.
-  if (setup.ngrok?.url === url) {
+  if (setup.ngrok.url === url) {
     layout(`Ngrok URL unchanged, skipped reconfiguring endpoints.`);
     return;
   }
-
-  // Ngrok config object
-  setup.ngrok = setup.ngrok ?? {};
 
   // TODO: create a separate "updateUrl" function?
   setup.ngrok.url = url;
@@ -66,7 +75,18 @@ export async function connect() {
   setup.backend.gql = url.replace(/^http[s]?/,'wss')+'/graphql';
   setup.backend.adminUrl = setup.backend.url+'/admin';
   setup.backend.webhookUrl = setup.backend.url+'/event-manager/webhooks';
-  
+
+  layout(`
+    The development server at *${addr}* is now accessible via:
+
+    ${setup.backend.url}
+  `);
+
+  // TODO: move this to a separate Mux module?
+  if (setup.backend.type == 'mux') {
+    await Mux.webhookConfig();
+  }
+
   await Multipass.configureBackend(
     setup.app_config,
     [
@@ -74,8 +94,4 @@ export async function connect() {
     ]
   );
 
-  // TODO: move this to a separate Mux module?
-  if (setup.backend.type == 'mux') {
-    await Mux.webhookConfig();
-  }
 }

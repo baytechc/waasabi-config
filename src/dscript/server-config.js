@@ -26,9 +26,11 @@ export default function task(setup) {
   run.push([
     '@as:waasabi',
     '@writefile:./.env',
+    //TODO: move this out of here
     [
       `ADMIN_JWT_SECRET=${setup.secret}`,
-      `BACKEND_URL=${setup.backend.url}`,
+      `BACKEND_URL=${setup.backend.url ?? 'http://localhost/waasabi/' }`,
+      // TODO: only for Mux backends
       `MUX_WEBHOOK_SECRET=${setup.backend.webhook_secret}`,
     ].join('\n'),
   ]);
