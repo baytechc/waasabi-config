@@ -33,5 +33,5 @@ export default function task(setup) {
     'save',
   ]);
 
-  return { name, desc, run, success: `Server ready to start` };
+  return { name, desc, run, success: `Server started` };
 }

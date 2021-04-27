@@ -25,7 +25,7 @@ export default function task(setup) {
 
   run.push([
     '@as:waasabi',
-    '@writefile:./config/server.js',
+    '@writefile:./.env',
     [
       `ADMIN_JWT_SECRET=${setup.secret}`,
       `BACKEND_URL=${setup.backend.url}`,

@@ -1,5 +1,8 @@
 import YAML from 'yaml';
+
+import nginx from './dscript/nginx.js';
 import letsencrypt from './dscript/letsencrypt.js';
+import nodejs from './dscript/nodejs.js';
 import pm2 from './dscript/pm2.js';
 import server from './dscript/server.js';
 import serverconfig from './dscript/server-config.js';
@@ -9,7 +12,9 @@ import serverstart from './dscript/server-start.js';
 
 export default function generate(setup) {
   return [
+    nginx(setup),
     letsencrypt(setup),
+    nodejs(setup),
     pm2(setup),
     server(setup),
     serverconfig(setup),

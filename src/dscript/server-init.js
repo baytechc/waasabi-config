@@ -11,12 +11,14 @@ export default function task(setup) {
   // Install dependencies
   run.push([
     '@as:waasabi',
-    'npm install',
+    'npm',
+    'install',
   ]);
 
   run.push([
     '@as:waasabi',
-    'npm dedupe',
+    'npm',
+    'dedupe',
   ]);
 
   run.push([

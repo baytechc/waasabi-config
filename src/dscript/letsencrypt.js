@@ -5,6 +5,15 @@ export default function task(setup) {
   if (setup?.prod) {
     const run = [];
 
+    // Install certbot and the --nginx backend
+    run.push([
+      'apt-get',
+      'install',
+      'certbot',
+      'python3-certbot-nginx',
+    ]);
+
+    // Run certbot-nginx to provision a new Let's Encrypt SSL certificate
     run.push([
       'certbot',
       '--nginx',
