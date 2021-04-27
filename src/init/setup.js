@@ -9,7 +9,7 @@ import { layout } from './content-formatter.js';
 import { find as multipassFind } from './multipass.js';
 
 
-const DEFAULT_STRAPI_VERSION = '3.4.6';
+const DEFAULT_STRAPI_VERSION = '3.6.0';
 
 
 
