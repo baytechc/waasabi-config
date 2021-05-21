@@ -11,6 +11,8 @@ import { find as multipassFind } from './multipass.js';
 
 const DEFAULT_STRAPI_VERSION = '3.6.0';
 
+const DEFAULT_UI_VERSION = '0.1.0';
+
 
 
 let setup = {};
@@ -30,14 +32,26 @@ export function init() {
 
   // Default app name (e.g. home dir folder for Strapi install)
   setup.app = 'host';
+  setup.app_dir = `/home/waasabi/${setup.app}`;
+
   // Waasabi backend config file
-  setup.app_config = `/home/waasabi/${setup.app}/.env`;
+  setup.app_config = setup.app_dir + `/.env`;
+
+  // Default livepage name (the folder for the waasabi-live installation)
+  setup.ui = 'live';
+  setup.ui_dir = `/home/waasabi/${setup.ui}`;
+
+  // Livepage configuration file
+  setup.ui_config = setup.ui_dir + `/website.config.js`;
 
   // Default secret (e.g. for JWT encryption)
   setup.secret = randomBytes(32).toString('base64');
 
   // Strapi version to install
-  setup.strapiVersion = `@${DEFAULT_STRAPI_VERSION || process.env.STRAPI_VERSION}`;
+  setup.strapi_version = process.env.STRAPI_VERSION || DEFAULT_STRAPI_VERSION;
+
+  // Livepage version to install
+  setup.ui_version = process.env.UI_VERSION || DEFAULT_UI_VERSION;
 
   // Instance-specific configuration
   setup.instance = {};

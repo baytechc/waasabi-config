@@ -7,11 +7,19 @@ export default function task(setup) {
   // In the Waasabi user home
   run.push([ '@dir:/home/waasabi' ]);
 
+  // Canonicalize older config versions
+  if (setup.strapiVersion && !setup.strapi_version) {
+    setup.strapi_version = setup.strapiVersion;
+  }
+  if (setup.strapi_version.startsWith('@')) {
+    setup.strapi_version = setup.strapi_version.substr(1);
+  }
+
   // Create a Waasabi server instance from the Strapi template
   run.push([
     '@as:waasabi',
     'npx',
-    'create-strapi-app'+setup.strapiVersion, /* install specific Strapi version */
+    'create-strapi-app@'+(setup.strapi_version || 'latest'), /* install specific Strapi version */
     setup.app, /* the name of the directory to create the server in */
     '--template',
     'https://github.com/baytechc/strapi-template-waasabi', /* the Waasabi server template */

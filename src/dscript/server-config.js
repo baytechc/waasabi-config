@@ -8,7 +8,7 @@ export default function task(setup) {
   const run = [];
 
   // In the Waasabi server directory
-  run.push([ '@dir:/home/waasabi/'+setup.app ]);
+  run.push([ '@dir:'+setup.app_dir ]);
 
   // Create a Waasabi server configuration files
   run.push([
@@ -25,7 +25,7 @@ export default function task(setup) {
 
   run.push([
     '@as:waasabi',
-    '@writefile:./.env',
+    '@writefile:'+setup.app_config,
     //TODO: move this out of here
     [
       `ADMIN_JWT_SECRET=${setup.secret}`,

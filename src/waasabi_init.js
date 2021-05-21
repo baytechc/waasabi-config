@@ -8,6 +8,8 @@ import server from './dscript/server.js';
 import serverconfig from './dscript/server-config.js';
 import serverinit from './dscript/server-init.js';
 import serverstart from './dscript/server-start.js';
+import ui from './dscript/ui.js';
+import uiconfig from './dscript/ui-config.js';
 
 
 export default function generate(setup) {
@@ -20,6 +22,8 @@ export default function generate(setup) {
     serverconfig(setup),
     serverinit(setup),
     serverstart(setup),
+    ui(setup),
+    uiconfig(setup),
   ];
 }
 

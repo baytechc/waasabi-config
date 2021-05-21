@@ -7,7 +7,7 @@ export default function task(setup) {
   const run = [];
 
   // In the Waasabi server directory
-  run.push([ '@dir:/home/waasabi/'+setup.app ]);
+  run.push([ '@dir:'+setup.app_dir ]);
 
   // Create a Waasabi server PM2 ecosystem file
   run.push([

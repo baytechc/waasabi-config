@@ -1,21 +1,28 @@
-import b64 from './b64.js';
+import websiteconfigjs from '../livepage_website_config.js';
 
-import websiteconfigjs from './livepage_website_config.js';
+export default function task(setup) {
+  const name = import.meta.url.match(/([^\/]+)\.js$/)[1];
+  const desc = `Configuring the Waasabi Livepage…`;
 
-export default (setup) => `
-echo -n 'Configuring live page... ' >> /var/log/waasabi_init.log
+  const run = [];
 
-# Configure live page
-sudo -u waasabi bash -c '
-  cd ~/live
+  // In the Waasabi livepage directory
+  run.push([ '@dir:'+setup.ui_dir ]);
 
-  # TODO: figure out the best place to update the config
-  ${b64(websiteconfigjs(setup))} > website.config.js
+  // Create a Waasabi server configuration files
+  run.push([
+    '@as:waasabi',
+    `@writefile:${setup.ui_config}`,
+    websiteconfigjs(setup),
+  ]);
 
-  # Generate the site
-  ${setup.mode=='develop'?'#':''}npm install
-  npm run build
-'
+  run.push([
+    '@as:waasabi',
+    'npm',
+    'run',
+    'build',
+    setup.prod ? '' :'--no-optimization'
+  ]);
 
-echo '\\u2713  DONE' >> /var/log/waasabi_init.log
-`;
+  return { name, desc, run, success: `Waasabi Livepage published` };
+}

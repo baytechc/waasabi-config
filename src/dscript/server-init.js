@@ -5,15 +5,17 @@ export default function task(setup) {
   const run = [];
 
   // In the Waasabi server directory
-  run.push([ '@dir:/home/waasabi/'+setup.app ]);
+  run.push([ '@dir:'+setup.app_dir ]);
 
   // if (!setup.mode == 'develop') {...}
+
+  // TODO: not needed, create-strapi-app installs everything
   // Install dependencies
-  run.push([
-    '@as:waasabi',
-    'npm',
-    'install',
-  ]);
+  //run.push([
+  //  '@as:waasabi',
+  //  'npm',
+  //  'install',
+  //]);
 
   run.push([
     '@as:waasabi',
