@@ -1,8 +1,5 @@
-import generateLiveWebsiteConfig from './src/livepage_website_config.js';
+import * as Setup from './src/init/setup.js';
 
-import setup, * as Setup from './src/init/setup.js';
-
-import { layout, clear, loading } from './src/init/content-formatter.js';
 import start from './src/flow/start.js';
 import { configNew } from './src/flow/config.js';
 import actionsMenu from './src/flow/actions.js';

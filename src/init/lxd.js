@@ -71,15 +71,26 @@ export async function launch(instance, cloudinit) {
       // Also update the setup.instance with the instance info
       if (Setup.instancename() === instance) {
         try {
-          //TODO:
           //On initial launch the instance doesn't instantly get an IPv4
           //address, we should wait until the IPv4 address is assigned
           //before proceeding here
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          let retries = 5;
 
-          const instanceInfo = await Setup.findinstance();
+          while(--retries >= 0) {
+            const instanceInfo = await Setup.findinstance();
 
-          resolve(instanceInfo);
+            // No VM found
+            if (!instanceInfo) throw(new Error('VM failed to launch!'));
+
+            // The VM has a valid IPv4 address
+            if (instanceInfo.ip) return resolve(instanceInfo);
+            
+            // No IP address yet, wait a little longer and try again
+            console.log('The VM has launched, but no IP address available yet...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+
+          return reject(new Error('Failed to detect a valid IP address on the VM!'));
         }
         catch(e) {
           reject(e);

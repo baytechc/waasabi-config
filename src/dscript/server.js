@@ -1,3 +1,5 @@
+import * as Setup from '../init/setup.js';
+
 export default function task(setup) {
   const name = import.meta.url.match(/([^\/]+)\.js$/)[1];
   const desc = `Installing the Waasabi server, powered by Strapi…`;
@@ -8,8 +10,10 @@ export default function task(setup) {
   run.push([ '@dir:/home/waasabi' ]);
 
   // Canonicalize older config versions
-  if (setup.strapiVersion && !setup.strapi_version) {
-    setup.strapi_version = setup.strapiVersion;
+  if (setup.strapiVersion) {
+    if (!setup.strapi_version) setup.strapi_version = setup.strapiVersion;
+    delete setup.strapiVersion;
+    Setup.persist();
   }
   if (setup.strapi_version.startsWith('@')) {
     setup.strapi_version = setup.strapi_version.substr(1);

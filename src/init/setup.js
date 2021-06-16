@@ -13,7 +13,7 @@ import * as VM from './vm.js';
 
 const DEFAULT_STRAPI_VERSION = '3.6.0';
 
-const DEFAULT_UI_VERSION = '0.2.0';
+const DEFAULT_UI_VERSION = '0.2.1';
 
 export const CONFIGDIR = join(OS.homedir(), '.waasabi');
 export const INSTANCEDIR = join(CONFIGDIR, 'instance');
@@ -159,6 +159,10 @@ export async function findinstance(name = instancename()) {
 // and detect changes.
 export function trackChanges() {
   const snapshot = _clone(setup);
+
+  fs.writeFileSync(join(CONFIGDIR, 'changes.log'),
+    JSON.stringify(snapshot,null,2)+'\n\n\n'+JSON.stringify(setup,null,2)
+  );
 
   // The caller can use the .changed() method on the returned object
   // to check if the configuration has changed since the snapshot

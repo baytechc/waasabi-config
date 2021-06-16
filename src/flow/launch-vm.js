@@ -6,6 +6,7 @@ import * as Ngrok from '../init/ngrok.js';
 import CLI from './commandline.js';
 
 import { generateYaml as generateCloudInitYml } from '../cloud_init.js';
+import generateLiveWebsiteConfig from '../livepage_website_config.js';
 
 
 export async function launchInVM() {
@@ -119,21 +120,20 @@ async function rebuildIfConfigChanged(snapshot) {
     // Local instance (launch/develop)
     layout(`## Configuring local Waasabi instance`);
 
-    // TODO: when do we need to do this exactly?
-    //await VM.configureBackend(setup.app_config, [
-    //  [ 'ADMIN_JWT_SECRET', setup.secret ]
-    //]);
+    // TODO: review which pieces are still needed for Ngrok
+
+    // TODO: this needs to wait for the cloud-init to finish first
 
     // TODO: make this run parallel to the webhook prompt to save time to the user
-    await VM.rebuildBackend();
-    await VM.restartBackend();
+    //await VM.rebuildBackend();
+    //await VM.restartBackend();
 
     // Update frontend config & rebuild
-    await VM.writeFile(
-      Setup.instancename(),
-      '/home/waasabi/live/website.config.js',
-      generateLiveWebsiteConfig(setup)
-    );
-    await VM.rebuildFrontend();
+    //await VM.writeFile(
+    //  Setup.instancename(),
+    //  '/home/waasabi/live/website.config.js',
+    //  generateLiveWebsiteConfig(setup)
+    //);
+    //await VM.rebuildFrontend();
   }
 }

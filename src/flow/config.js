@@ -71,4 +71,7 @@ export async function configChange() {
   // TODO: if setup.host is different then oldhost clean up the old config directory first
 
   await Setup.persist();
+
+  // Pause to make the "Configuration saved!" message perceptible here
+  await new Promise(resolve => setTimeout(resolve, 2000));
 }
