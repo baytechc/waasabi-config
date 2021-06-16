@@ -1,6 +1,6 @@
 {
   "name": "waasabi",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -10,9 +10,14 @@
   },
   "author": "Flaki <git@flaki.hu>",
   "license": "Apache-2.0",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/baytechc/waasabi-live"
+  },
   "dependencies": {
     "ansi-colors": "^4.1.1",
     "enquirer": "^2.3.6",
+    "fs-extra": "^10.0.0",
     "lodash-es": "^4.17.21",
     "ngrok": "^3.4.0",
     "node-fetch": "^2.6.1",

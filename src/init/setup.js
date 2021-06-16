@@ -1,4 +1,6 @@
-import fs from 'fs';
+import OS from 'os';
+import fs from 'fs-extra';
+
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
@@ -13,6 +15,10 @@ const DEFAULT_STRAPI_VERSION = '3.6.0';
 
 const DEFAULT_UI_VERSION = '0.2.0';
 
+export const CONFIGDIR = join(OS.homedir(), '.waasabi');
+export const INSTANCEDIR = join(CONFIGDIR, 'instance');
+
+fs.ensureDirSync(INSTANCEDIR);
 
 
 let setup = {};
@@ -63,14 +69,13 @@ export function init() {
 
 export async function list(opts) {
   const { sort } = opts;
-  const instancedir = fileURLToPath( new URL(`../../instance/`, import.meta.url) );
 
-  let files = await fs.promises.readdir(instancedir);
+  let files = await fs.promises.readdir(INSTANCEDIR);
   if (!sort) return files;
 
   if (sort === 'newest') {
     const filetimes = files.map(
-  f => [fs.statSync(join(instancedir, f)).mtimeMs, f]
+      f => [fs.statSync(join(INSTANCEDIR, f)).mtimeMs, f]
     );
 
     filetimes.sort((a,b) => b[0]-a[0]);
@@ -112,12 +117,12 @@ export async function restore(filename = configfile()) {
 
 export function instancedir(host = setup.host) {
   // TODO: Should throw if the path is not valid (e.g. setup.host is unset)
-  return 'instance/' + host;
+  return join(INSTANCEDIR, host);
 }
 
 export function configfile(host = setup.host) {
   // TODO: if instancedir() throws, should throw
-  return new URL(`../../${instancedir(host)}/setup.json`, import.meta.url);
+  return join(instancedir(host), '/setup.json');
 }
 
 export function instancename(host = setup.host) {
