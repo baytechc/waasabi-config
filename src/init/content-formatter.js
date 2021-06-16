@@ -126,7 +126,9 @@ export function clear() {
 export async function loading(message, task) {
   const spinner = ora(message).start();
 
-  await task;
+  const taskresult = await task;
 
   spinner.stop();
+
+  return taskresult;
 }

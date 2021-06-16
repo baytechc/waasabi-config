@@ -25,11 +25,16 @@ export async function webhookConfig(){
     Please copy-paste the provided signing secret here, or leave it empty if you would like to keep the current configuration:
   `);
 
-  let secret = await (new enquirer.Password({
-    name: 'backend.mux_webhook_secret',
-    message: 'Webhook Secret',
-    initial: setup.backend.webhook_secret
-  })).run();
+  let secret;
+  try {
+    secret = await (new enquirer.Password({
+      name: 'backend.mux_webhook_secret',
+      message: 'Webhook Secret',
+      initial: setup.backend.webhook_secret
+    })).run();
+  }
+  // Handle Ctrl+C
+  catch(e) { return false; }
 
   // Secret is unchanged
   if (secret === '') {

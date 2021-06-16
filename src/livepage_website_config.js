@@ -6,6 +6,9 @@ export default (setup) => 'export default '+JSON.stringify({
   // GraphQL WebSocket connection string to the Waasabi backend
   WAASABI_GRAPHQL_WS: setup.backend.gql ?? `wss://${setup.host}/graphql`,
 
+  // External link to sessions (default: do not link)
+  WAASABI_SESSION_URL: '',
+
   // Is chat enabled? What chat system is used?
   WAASABI_CHAT_ENABLED: true,
   WAASABI_CHAT_SYSTEM: 'matrix',
@@ -19,4 +22,4 @@ export default (setup) => 'export default '+JSON.stringify({
 
   // The Matrix API server to use
   WAASABI_MATRIX_API: 'https://matrix.org/_matrix/',
-});
+}, null, 2);

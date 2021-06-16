@@ -3,7 +3,7 @@ server {
   listen 80;
   listen [::]:80;
 
-  ${setup.prod ? '' : '#'}server_name ${setup.host};
+  server_name ${setup.host} ${!setup.prod || setup.nginx_all ? '_' : ''};
 
   # Live page root
   root /home/waasabi/live/_site/;
@@ -15,7 +15,6 @@ server {
     proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header        X-Forwarded-Proto $scheme;
 
-    rewrite     /waasabi(.*) $1 break;
     proxy_pass  http://localhost:1337;
     proxy_read_timeout  90;
 

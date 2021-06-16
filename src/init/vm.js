@@ -6,151 +6,37 @@ import setup, * as Setup from './setup.js';
 import backendconfigsh from '../backend_config_sh.js';
 import livepageconfigsh from '../livepage_config_sh.js';
 
-import {writeFileSync} from 'fs';
+import * as LXD from './lxd.js';
 
-function deprecate() {
-  return console.error(new Error('Deprecated.'));
-}
+// Choose VM Driver
+const VMD=LXD;
 
 export async function launch(instance, cloudinit) {
-  deprecate();
-  // Launch a new multipass instance, pass cloud-init config via stdin
-  // $> multipass launch --disk 10G --mem 2G --name waasabi lts --cloud-init -
-  const multipass = spawn('multipass', ['launch', '-c','2', '-d','10G', '-m','2G', '-n',instance, '--cloud-init', '-', 'lts']);
-
-  console.log('$>', multipass.spawnargs.join(' '));
-
-  // Write cloudinit config string & close the stdin
-  multipass.stdin.end(cloudinit);
-
-  let outdata = [];
-
-  return new Promise((resolve, reject) => {
-    multipass.stdout.on('data', (data) => {
-      outdata.push(data);
-
-      //const str = data.toString().trim()
-      //if ('\|/-'.includes(str) == false) {
-      //  console.log(colors.magenta(str));
-      //}
-    });
-    multipass.stdout.pipe(process.stdout);
-
-    multipass.stderr.on('data', (data) => {
-      console.log(data.toString());
-    });
-
-    multipass.on('exit', async (code) => {
-      console.log('Multipass Launch finished with exit code #'+code);
-
-      writeFileSync('multipasslaunch.log', Buffer.concat(outdata));
-
-      // Also update the setup.instance with the instance info
-      if (Setup.instancename() === instance) {
-        try {
-          const instanceInfo = await Setup.findinstance();
-          console.log(instanceInfo);
-          resolve(instanceInfo);
-        }
-        catch(e) {
-          reject(e);
-        }
-      }
-
-      reject(new Error('No instance was launched.'));
-    });
-  });
+  return VMD.launch(instance, cloudinit);
 }
 
 export async function find(instance) {
-  deprecate();
-  const multipass = spawn('multipass', ['info', '--format', 'json', instance]);
-
-  let outdata = [];
-
-  return new Promise((resolve, reject) => {
-    multipass.stdout.on('data', (data) => outdata.push(data));
-
-    let err = '';
-    multipass.stderr.on('data', (data) => err += data.toString());
-    multipass.on('exit', (code) => {
-      let res = void 0;
-
-      // If the instance doesn't exist find resolves to 'undefined'
-      if (err) {
-        if (err.includes('does not exist')) {
-          return resolve(res);
-        }
-
-        // Other error, reject
-        if (code > 0) return reject(new Error(err));
-      }
-
-      // Try parsing the output JSON and use it as a result
-      try {
-        res = JSON.parse(Buffer.concat(outdata).toString());
-      }
-      catch(e) {}
-
-      resolve(res);
-    });
-  });
+  return VMD.find(instance);
 }
 
-export async function list() {
-  deprecate();
-  const multipass = spawn('multipass', ['list', '--format', 'json']);
-
-  let outdata = [];
-
-  return new Promise((resolve, reject) => {
-    multipass.stdout.on('data', (data) => outdata.push(data));
-
-    multipass.on('exit', (code) => {
-      let res = undefined;
-
-      try {
-        res = JSON.parse(Buffer.concat(outdata).toString());
-      }
-      catch(e) {}
-
-      resolve(res);
-    });
-  });
+export async function list(opts) {
+  return VMD.list(...arguments);
 }
 
 export async function exec(instance, command, commandInput) {
-  deprecate();
-  const multipass = spawn('multipass', ['exec', instance, '--'].concat(command));
-
-  let outdata = [];
-
-  return new Promise((resolve, reject) => { 
-    // Pass contents in on STDIN if requested
-    if (commandInput) {
-      //if (typeof commandInput == 'string') Readable.from([commandInput]).pipe(multipass.stdin);
-      multipass.stdin.end(commandInput);
-    }
-
-    multipass.stdout.on('data', (data) => outdata.push(data));
-    multipass.stderr.pipe(process.stderr);
-    multipass.on('exit', (code) => {
-      let res = Buffer.concat(outdata).toString();
-
-      if (code) return reject('Failed multipass command: '+command.join(' '));
-      try {
-        res = JSON.parse(res);
-      }
-      catch(e) {
-        console.log(res);
-      }
-      resolve(res);
-    });
-  });
+  return VMD.exec(...arguments);
 }
 
 export async function writeFile(instance, file, contents) {
   return await exec(instance, [ 'sudo', 'tee', file ], contents);
+}
+
+export async function updateFile(instance, file, modFn) {
+  // TODO:
+  // rull file from instance
+  // run modFn on contents
+  // push results back
+  return false;
 }
 
 export async function mount(options, instance = Setup.instancename()) {
@@ -295,3 +181,30 @@ export async function rebuildFrontend(instance = Setup.instancename()) {
 }
 
 
+export function extract(instance, prop) {
+  if (prop == 'ipv4') {
+    //DEPRECATED:multipass: return instance.ipv4[0];
+
+    // network.eth0 is the primary network adapter, with ipv4/ipv6 addresses
+    // We take the v4 address for simplicity
+    return instance.network.eth0.addresses.filter(i => i.family == 'inet').pop()?.address;
+  }
+
+  if (prop == 'os') {
+    //DEPRECATED:multipass: return `Ubuntu ${instance.release}`;
+
+    return instance.config['image.os'] + ' ' + instance.config['image.release'];
+  }
+
+  if (prop == 'vmhost') {
+    //DEPRECATED:multipass: return 'Multipass';
+
+    return 'LXD '+instance.type;
+  }
+
+  if (prop == 'state') {
+    //DEPRECATED:multipass: return instance.state;
+
+    return instance.status;
+  }
+}

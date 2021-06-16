@@ -1,13 +1,17 @@
 import fs from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
 
 import { isEqual as _equal, cloneDeep as _clone } from 'lodash-es';
 
 import { layout } from './content-formatter.js';
-import { find as multipassFind } from './multipass.js';
+import * as VM from './vm.js';
 
 
-const DEFAULT_STRAPI_VERSION = '3.4.6';
+const DEFAULT_STRAPI_VERSION = '3.6.0';
+
+const DEFAULT_UI_VERSION = '0.2.0';
 
 
 
@@ -28,27 +32,66 @@ export function init() {
 
   // Default app name (e.g. home dir folder for Strapi install)
   setup.app = 'host';
+  setup.app_dir = `/home/waasabi/${setup.app}`;
+
   // Waasabi backend config file
-  setup.app_config = `/home/waasabi/${setup.app}/.env`;
+  setup.app_config = setup.app_dir + `/.env`;
+
+  // Default livepage name (the folder for the waasabi-live installation)
+  setup.ui = 'live';
+  setup.ui_dir = `/home/waasabi/${setup.ui}`;
+
+  // Livepage configuration file
+  setup.ui_config = setup.ui_dir + `/website.config.js`;
 
   // Default secret (e.g. for JWT encryption)
   setup.secret = randomBytes(32).toString('base64');
 
   // Strapi version to install
-  setup.strapiVersion = `@${DEFAULT_STRAPI_VERSION || process.env.STRAPI_VERSION}`;
+  setup.strapi_version = process.env.STRAPI_VERSION || DEFAULT_STRAPI_VERSION;
+
+  // Livepage version to install
+  setup.ui_version = process.env.UI_VERSION || DEFAULT_UI_VERSION;
 
   // Instance-specific configuration
   setup.instance = {};
+
+  setup.services = {
+    deploy: [],
+  }
 }
 
-export async function list() {
-  return await fs.promises.readdir(new URL(`../../instance/`, import.meta.url));
+export async function list(opts) {
+  const { sort } = opts;
+  const instancedir = fileURLToPath( new URL(`../../instance/`, import.meta.url) );
+
+  let files = await fs.promises.readdir(instancedir);
+  if (!sort) return files;
+
+  if (sort === 'newest') {
+    const filetimes = files.map(
+  f => [fs.statSync(join(instancedir, f)).mtimeMs, f]
+    );
+
+    filetimes.sort((a,b) => b[0]-a[0]);
+
+    return filetimes.map(ft => ft[1]);
+  }
 }
 
 // Save configuration
 export async function persist(filename = configfile()) {
   // TODO: ensure instance config directory exists
-  await fs.promises.writeFile(filename, JSON.stringify(setup, null, 2));
+  try {
+    await fs.promises.writeFile(filename, JSON.stringify(setup, null, 2));
+  }
+  catch(e) {
+    // Ensure project dir exists
+    const dir = dirname(filename instanceof URL ? fileURLToPath(filename) : filename);
+    await fs.promises.mkdir(dir, { recursive: true });
+
+    return persist(filename);
+  }
 
   layout(`Configuration saved in: *${filename}*`);
 }
@@ -82,18 +125,22 @@ export function instancename(host = setup.host) {
 }
 
 export async function findinstance(name = instancename()) {
-  const instance = await multipassFind(name);
+  let instance;
+  try {
+    instance = await VM.find(name);
+  }
+  catch(e) {
+    console.error(e);
+    throw e;
+  }
 
   delete setup._instance;
   delete setup.instance;
 
   if (!instance) return;
 
-  // Information returned from multipass find
-  setup._instance = instance.info[name];
-
   setup.instance = {
-    ip: setup._instance.ipv4[0],
+    ip: VM.extract(instance, 'ipv4'),
     type: 'local',
   };
 
