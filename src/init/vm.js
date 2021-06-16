@@ -11,6 +11,15 @@ import * as LXD from './lxd.js';
 // Choose VM Driver
 const VMD=LXD;
 
+export async function providers() {
+  const providers = new Set();
+
+  if (await LXD.available()) providers.add('lxd')
+
+  if (providers.size === 0) return null;
+  return Array.from(providers);
+}
+
 export async function launch(instance, cloudinit) {
   return VMD.launch(instance, cloudinit);
 }

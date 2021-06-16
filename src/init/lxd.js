@@ -1,6 +1,24 @@
 import { spawn } from 'child_process';
+import { join } from 'path';
 
 import setup, * as Setup from './setup.js';
+
+
+export async function available() {
+  try {
+    const proc = spawn('lxc', ['--version']);
+
+    await new Promise((resolve, reject) => {
+      proc.on('error', (err) => reject(err));
+      proc.on('exit', (code) => (code === 0) ? resolve() : reject() );
+    })
+
+    return true;
+  }
+  catch (err) {
+    return false;
+  }
+}
 
 // https://askubuntu.com/a/701629
 export async function launch(instance, cloudinit) {
@@ -17,7 +35,7 @@ export async function launch(instance, cloudinit) {
 
   // Collect process output and also display it
   return new Promise((resolve, reject) => {
-    proc.on('spawn', () => console.log('$>', proc.spawnargs.join(' ').substr(0,300)+'\n...'));
+    //DEBUG:proc.on('spawn', () => console.log('$>', proc.spawnargs.join(' ').substr(0,300)+'\n...'));
     proc.on('error', (err) => reject(err));
 
     //TODO:timeout?
@@ -48,7 +66,7 @@ export async function launch(instance, cloudinit) {
       //   Add instance info to the database:
       //    This instance already exists
 
-      /*DEBUG*/await import('fs').then(fs => fs.writeFileSync('vmlaunch.log', Buffer.concat(outdata)));
+      /*DEBUG*/await import('fs').then(fs => fs.writeFileSync(join(Setup.CONFIGDIR, 'vmlaunch.log'), Buffer.concat(outdata)));
 
       // Also update the setup.instance with the instance info
       if (Setup.instancename() === instance) {
@@ -85,7 +103,7 @@ export async function find(instance) {
 
   // Get instance state information
   return new Promise((resolve, reject) => {
-    proc.on('spawn', () => console.log('$>', proc.spawnargs.join(' ').substr(0,300)+'\n...'));
+    //DEBUG:proc.on('spawn', () => console.log('$>', proc.spawnargs.join(' ').substr(0,300)+'\n...'));
     proc.on('error', (err) => reject(err));
 
     let outdata = [];
@@ -126,7 +144,7 @@ export async function find(instance) {
 // lxc query /1.0/instances?recursion=2 - incl. config & state, same as: lxc list --format json
 export async function list(opts = { detail: 'basic' }) {
   // Configure listing detail - opts.detail: no|basic|full
-  console.log(opts)
+
   let recursion = 1;
   if (opts?.detail == 'no') recursion = false;
   if (opts?.detail == 'full') recursion = 2;
@@ -139,7 +157,7 @@ export async function list(opts = { detail: 'basic' }) {
   let outdata = [];
 
   return new Promise((resolve, reject) => {
-    proc.on('spawn', () => console.log('$>', proc.spawnargs.join(' ').substr(0,300)+'\n...'));
+    //proc.on('spawn', () => console.log('$>', proc.spawnargs.join(' ').substr(0,300)+'\n...'));
     proc.on('error', (err) => reject(err));
 
     proc.stdout.on('data', (data) => outdata.push(data));

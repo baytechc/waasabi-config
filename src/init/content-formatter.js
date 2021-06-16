@@ -1,6 +1,9 @@
 import colors from 'ansi-colors';
 import ora from 'ora';
 
+import enquirer from 'enquirer';
+const { Invisible } = enquirer;
+
 
 // TODO: create separate module for formatting
 function h1(cont) {
@@ -120,6 +123,13 @@ export function layout(s) {
 
 export function clear() {
   console.clear();
+}
+
+export function pause(message = 'Press Enter to continue...') {
+  return new Invisible({
+    name: 'wait',
+    message,
+  }).run();
 }
 
 

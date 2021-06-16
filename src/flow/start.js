@@ -44,7 +44,7 @@ export default async function() {
 
   let selectedConfig = newOption.name;
 
-  if (configOptions) {
+  if (configOptions.length > 0) {
     // Add 'create new' option
     configOptions.push(newOption);
 

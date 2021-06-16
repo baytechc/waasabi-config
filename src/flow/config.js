@@ -1,5 +1,5 @@
 import setup, * as Setup from '../init/setup.js';
-import { layout } from '../init/content-formatter.js';
+import { clear, pause, layout } from '../init/content-formatter.js';
 
 import enquirer from 'enquirer';
 const { Select } = enquirer;
@@ -28,6 +28,8 @@ export async function configChange() {
   const oldhost = setup.host;
 
   do {
+    clear();
+
     layout(`
       # Edit configuration
 
@@ -45,14 +47,25 @@ export async function configChange() {
         { name: 'content', message: 'Content…' },
         { name: 'database', message: 'Database…' },
         { name: 'chat', message: 'Chat integration…' },
-        { name: 'deployment', message: 'Deployment: '+setup.deployment },
-        { name: 'done', message: 'Done' },
+        { name: 'deployment', message: 'Deployment: '+(setup.deployment ?? 'standard') },
+        { name: 'exit', message: 'Done' },
       ]
     })).run();
 
-    if (selection in Change) await Change[selection]();
+    if (selection in Change) {
+      await Change[selection]();
 
-    if (selection === 'done') break;
+    } else if (selection !== 'exit') {
+      layout(`
+      
+      *Sorry, this option is not available yet!*
+      
+      `);
+      await pause();
+
+    } else {
+      break;
+    }
   } while (1);
 
   // TODO: if setup.host is different then oldhost clean up the old config directory first

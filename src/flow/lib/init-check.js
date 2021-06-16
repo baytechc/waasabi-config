@@ -3,12 +3,18 @@ import * as VM from '../../init/vm.js';
 
 
 export default async function initCheck() {
-  const instancelist = await VM.list({ detail: 'full' });
   const configlist = await Setup.list({ sort: 'newest' });
 
-  // No instances
-  if (!instancelist) return configlist;
+  // Check for virtualization options
+  const providers = await VM.providers();
 
+  let instancelist;
+  if (providers) instancelist = await VM.list({ detail: 'full' });
+
+  // No virtualization providers available, or no instances has been configured
+  if (!instancelist) return configlist.map(host => ({host}));
+
+  
   // Map the list of instances keyed by the instance names
   const instances = new Map(instancelist.map(i => [i.name, i]));
 
@@ -19,8 +25,6 @@ export default async function initCheck() {
 
     return { host, instancename, instance };
   });
-
-  // TODO: ordering? latest-updated first? Running-instance-first?
 
   return configs;
 }
