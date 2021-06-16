@@ -10,14 +10,13 @@ import { generateYaml as generateWaasabiInitYml } from './src/waasabi_init.js';
 const { Input, Toggle } = enquirer;
 
 import setup, * as Setup from './src/init/setup.js';
-import * as Multipass from './src/init/multipass.js';
+import * as VM from './src/init/vm.js';
 import * as Ngrok from './src/init/ngrok.js';
 
 import { layout, clear, loading } from './src/init/content-formatter.js';
 import start from './src/flow/start.js';
-import { configNew, configChange } from './src/flow/config.js';
+import { configNew } from './src/flow/config.js';
 import actions from './src/flow/actions.js';
-
 
 (async () => {
   let selectedConfig = await start();
@@ -35,15 +34,7 @@ import actions from './src/flow/actions.js';
   } else {
     // Load the selected config
     await Setup.restore(Setup.configfile(selectedConfig));
- 
-    configure = await (new Toggle({
-      message: 'Would you like to change the existing configuration?',
-      initial: false,
-    })).run();
 
-    if (configure) {
-      await configChange();
-    }
   }
 
   // Create a snapshot of the current config so we can track changes
@@ -92,22 +83,24 @@ import actions from './src/flow/actions.js';
     process.exit(0);
   }
 
-  // mode === 'launch' or 'develop'
-
-  // Create a local instance using multipass
+  // Create a local instance using a VM or container
   if (!setup.instance) {
     layout(`## Launching new local Waasabi instance`);
 
-    await Multipass.launch(
+    await VM.launch(
       Setup.instancename(),
       await generateCloudInitYml(setup),
-    );  
+    );
   }
 
   // TODO: ensure the instance is actually running?
+  if (!setup.instance) {
+    console.error(`Couldn't launch local instance.`);
+    process.exit(1);
+  }
 
   layout(`
-    Local Multipass instance running on *${setup.instance.ip}*
+    Local VM instance running on *${setup.instance.ip}*
   `);
 
   // Configure development mount points
@@ -116,7 +109,12 @@ import actions from './src/flow/actions.js';
   if (setup.mode === 'develop') {
     layout(`## Mounting development folders`);
 
-    const changes = await Multipass.mountDevFolders();
+    //TODO:
+    // mount 'host' and 'live' as external directories
+    // lxc config device add waasabi-live-waasabi-org livepage disk source=/zpool/work/waasabi/waasabi-live path=/home/waasabi/live
+    // echo "root:1000:1" | sudo tee -a /etc/subuid /etc/subgid
+    // lxc config set waasabi-live-waasabi-org raw.idmap "both 1000 1000"
+    await VM.mountDevFolders();
   }
 
 
@@ -124,28 +122,28 @@ import actions from './src/flow/actions.js';
   layout(`## Configuring local Waasabi instance`);
 
   // TODO: when do we need to do this exactly?
-  //await Multipass.configureBackend(setup.app_config, [
+  //await VM.configureBackend(setup.app_config, [
   //  [ 'ADMIN_JWT_SECRET', setup.secret ]
   //]);
 
   await Ngrok.connect();
 
   
-  // Rebuild/restart the multipass backend & frontend when config changes
+  // Rebuild/restart the VM backend & frontend when config changes
   if (snapshot.changed()) {
     await Setup.persist();
 
     // TODO: make this run parallel to the webhook prompt to save time to the user
-    await Multipass.rebuildBackend();
-    await Multipass.restartBackend();
+    await VM.rebuildBackend();
+    await VM.restartBackend();
 
     // Update frontend config & rebuild
-    await Multipass.writeFile(
+    await VM.writeFile(
       Setup.instancename(),
       '/home/waasabi/live/website.config.js',
       generateLiveWebsiteConfig(setup)
     );
-    await Multipass.rebuildFrontend();
+    await VM.rebuildFrontend();
   }
 
   layout(`
@@ -181,7 +179,7 @@ import actions from './src/flow/actions.js';
 
     // Restart backend
     if (command === 'r') {
-      await Multipass.restartBackend();
+      await VM.restartBackend();
     }
   }
 

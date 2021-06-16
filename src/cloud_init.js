@@ -25,8 +25,9 @@ async function configurePackages(setup) {
 
     // Initial packages
   const packages = [
+    'git', /* needed for e.g. the Strapi installer */
+    'curl','unzip', /* needed for the Deno installer */
     'nginx',
-    'unzip', /* needed for the Deno installer */
   ];
 
   const package_update = true;
@@ -62,8 +63,8 @@ export default async function generate(setup) {
   return cloudinit;
 }
 
-export async function generateYaml(setup) {
+export async function generateYaml(setup, cloudConfig=true) {
   const g = await generate(setup);
 
-  return "#cloud-config\n" + YAML.stringify(g);
+  return (cloudConfig ? '#cloud-config\n' :'' ) + YAML.stringify(g);
 }

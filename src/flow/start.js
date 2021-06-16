@@ -1,4 +1,5 @@
 import setup, * as Setup from '../init/setup.js';
+import * as VM from '../init/vm.js';
 import { layout, clear, loading } from '../init/content-formatter.js';
 
 import enquirer from 'enquirer';
@@ -31,11 +32,8 @@ export default async function() {
     let message = host;
 
     if (instance) {
-      message += `: local Ubuntu ${instance.release}`;
-  
-      if (instance.state == 'Running') {
-        message += ` (${instance.state})`;
-      }
+      let state = VM.extract(instance,'state');
+      message += ` (${state} - ${VM.extract(instance,'os')} on ${VM.extract(instance,'vmhost')})`;
     }
   
     return { name: host, message };

@@ -2,7 +2,7 @@ import fs from 'fs';
 import ngrok from 'ngrok';
 
 import setup, * as Setup from './setup.js';
-import * as Multipass from './multipass.js';
+import * as VM from './vm.js';
 import * as Mux from './backend-mux.js';
 
 import YAML from 'yaml';
@@ -87,7 +87,7 @@ export async function connect() {
     await Mux.webhookConfig();
   }
 
-  await Multipass.configureBackend(
+  await VM.configureBackend(
     setup.app_config,
     [
       [ 'BACKEND_URL', setup.backend.url ],

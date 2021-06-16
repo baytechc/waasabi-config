@@ -39,16 +39,19 @@ export default async function() {
       You can create new credentials at https://dashboard.mux.com/settings/access-tokens
     `);
 
-    setup.backend.token = await (new Input({
-      name: 'backend.mux_token_id',
-      message: 'Token ID',
-      initial: setup.backend.token
-    })).run();
+    try {
+      setup.backend.token = await (new Input({
+        name: 'backend.mux_token_id',
+        message: 'Token ID',
+        initial: setup.backend.token
+      })).run();
 
-    setup.backend.token_secret = await (new Password({
-      name: 'backend.mux_token_secret',
-      message: 'Token Secret',
-      initial: setup.backend.token_secret
-    })).run();
+      setup.backend.token_secret = await (new Password({
+        name: 'backend.mux_token_secret',
+        message: 'Token Secret',
+        initial: setup.backend.token_secret
+      })).run();
+    }
+    catch(e) {}
   }
 }

@@ -1,16 +1,16 @@
 import * as Setup from '../../init/setup.js';
-import * as Multipass from '../../init/multipass.js';
+import * as VM from '../../init/vm.js';
 
 
 export default async function initCheck() {
-  const instancelist = await Multipass.list();
-  const configlist = await Setup.list();
+  const instancelist = await VM.list({ detail: 'full' });
+  const configlist = await Setup.list({ sort: 'newest' });
 
   // No instances
   if (!instancelist) return configlist;
 
   // Map the list of instances keyed by the instance names
-  const instances = new Map(instancelist.list.map(i => [i.name, i]));
+  const instances = new Map(instancelist.map(i => [i.name, i]));
 
   // Find associated instances and for the respective saved configurations
   const configs = configlist.map(host => {

@@ -8,8 +8,10 @@ import domain from './config-domain.js';
 import admin from './config-admin.js';
 import content from './config-content.js';
 import streaming from './config-streaming.js';
+import deployment from './deployment.js';
+import livepage from './livepage.js';
 
-const Change = { domain, admin, content, streaming };
+const Change = { domain, admin, content, streaming, deployment, livepage };
 
 
 export async function configNew() {
@@ -37,9 +39,13 @@ export async function configChange() {
       message: 'What would you like to change?',
       choices: [
         { name: 'domain', message: 'Domain: '+setup.host },
-        { name: 'admin', message: 'Admin info: '+setup.admin_email },
-        { name: 'content', message: 'Content' },
+        { name: 'admin', message: 'Admin details: '+setup.admin_email },
         { name: 'streaming', message: 'Streaming backend: '+setup.backend.type },
+        { name: 'livepage', message: 'Streaming UI…' },
+        { name: 'content', message: 'Content…' },
+        { name: 'database', message: 'Database…' },
+        { name: 'chat', message: 'Chat integration…' },
+        { name: 'deployment', message: 'Deployment: '+setup.deployment },
         { name: 'done', message: 'Done' },
       ]
     })).run();

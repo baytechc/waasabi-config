@@ -1,17 +1,17 @@
 import fs from 'fs';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
 
 import { isEqual as _equal, cloneDeep as _clone } from 'lodash-es';
 
 import { layout } from './content-formatter.js';
-import { find as multipassFind } from './multipass.js';
+import * as VM from './vm.js';
 
 
 const DEFAULT_STRAPI_VERSION = '3.6.0';
 
-const DEFAULT_UI_VERSION = '0.1.0';
+const DEFAULT_UI_VERSION = '0.2.0';
 
 
 
@@ -55,10 +55,28 @@ export function init() {
 
   // Instance-specific configuration
   setup.instance = {};
+
+  setup.services = {
+    deploy: [],
+  }
 }
 
-export async function list() {
-  return await fs.promises.readdir(new URL(`../../instance/`, import.meta.url));
+export async function list(opts) {
+  const { sort } = opts;
+  const instancedir = fileURLToPath( new URL(`../../instance/`, import.meta.url) );
+
+  let files = await fs.promises.readdir(instancedir);
+  if (!sort) return files;
+
+  if (sort === 'newest') {
+    const filetimes = files.map(
+  f => [fs.statSync(join(instancedir, f)).mtimeMs, f]
+    );
+
+    filetimes.sort((a,b) => b[0]-a[0]);
+
+    return filetimes.map(ft => ft[1]);
+  }
 }
 
 // Save configuration
@@ -109,7 +127,7 @@ export function instancename(host = setup.host) {
 export async function findinstance(name = instancename()) {
   let instance;
   try {
-    instance = await multipassFind(name);
+    instance = await VM.find(name);
   }
   catch(e) {
     console.error(e);
@@ -121,11 +139,8 @@ export async function findinstance(name = instancename()) {
 
   if (!instance) return;
 
-  // Information returned from multipass find
-  setup._instance = instance.info[name];
-
   setup.instance = {
-    ip: setup._instance.ipv4[0],
+    ip: VM.extract(instance, 'ipv4'),
     type: 'local',
   };
 
