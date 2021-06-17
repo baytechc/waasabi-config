@@ -2,6 +2,7 @@ import YAML from 'yaml';
 
 import nginx from './dscript/nginx.js';
 import letsencrypt from './dscript/letsencrypt.js';
+import postgresql from './dscript/postgresql.js';
 import nodejs from './dscript/nodejs.js';
 import pm2 from './dscript/pm2.js';
 import server from './dscript/server.js';
@@ -16,6 +17,7 @@ export default function generate(setup) {
   return [
     nginx(setup),
     letsencrypt(setup),
+    postgresql(setup),
     nodejs(setup),
     pm2(setup),
     server(setup),

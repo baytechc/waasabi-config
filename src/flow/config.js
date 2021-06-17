@@ -73,5 +73,5 @@ export async function configChange() {
   await Setup.persist();
 
   // Pause to make the "Configuration saved!" message perceptible here
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await pause();
 }

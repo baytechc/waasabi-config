@@ -23,13 +23,22 @@ export default async function() {
     choices: [
       { name: 'standalone', message: 'Default: Deploy standalone PostgreSQL service' },
       { name: 'custom', message: 'Custom: Use existing database/configuration' },
+      { name: 'disable', message: 'Disable: Don\'t install PostgreSQL' },
     ]
   })).run();
 
-  if (selection === 'standalone') {
-    tup.services.deploy.push('postgresql');
+  // Keep existing settings in 'custom' mode
+  if (mode == custom) {
+    setup.services.postgresql = Object.assign(
+      setup.services.postgresql ?? {},
+      { mode: selection }
+    );
+
+  // Reset settings in other modes
   } else {
     setup.services.postgresql = { mode: selection };
+
   }
 
+  // TODO: selection===custom configure config
 }

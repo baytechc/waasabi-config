@@ -22,14 +22,10 @@ export default async function() {
     message: 'How should the webserver be deployed?',
     choices: [
       { name: 'standalone', message: 'Default: Deploy standalone Nginx service' },
-      { name: 'custom', message: 'Manual: Export configuration file for manual deployment' },
+      { name: 'custom', message: 'Custom: Export configuration file for manual deployment' },
+      { name: 'disable', message: 'Disable: Don\'t install Nginx' },
     ]
   })).run();
 
-  if (selection === 'standalone') {
-    setup.services.deploy.push('nginx');
-  } else {
-    setup.services.nginx = { mode: selection };
-  }
-
+  setup.services.nginx = { mode: selection };
 }

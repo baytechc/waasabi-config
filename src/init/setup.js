@@ -62,9 +62,8 @@ export function init() {
   // Instance-specific configuration
   setup.instance = {};
 
-  setup.services = {
-    deploy: [],
-  }
+  // Services to deploy
+  setup.services = {};
 }
 
 export async function list(opts) {

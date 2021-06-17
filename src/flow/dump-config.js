@@ -1,3 +1,5 @@
+import { inspect } from 'util';
+
 import setup, * as Setup from '../init/setup.js';
 import { clear, pause } from '../init/content-formatter.js';
 
@@ -6,7 +8,8 @@ import { clear, pause } from '../init/content-formatter.js';
 export default async function() {
   clear();
 
-  console.log(setup);
+  // Recurse JSON object to unfold all depths
+  console.log( inspect(setup, { depth: null, colors: true }) );
 
   await pause();
 }

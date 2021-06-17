@@ -20,7 +20,7 @@ export default function task(setup) {
   }
 
   // Create a Waasabi server instance from the Strapi template
-  run.push([
+  let command = [
     '@as:waasabi',
     'npx',
     'create-strapi-app@'+(setup.strapi_version || 'latest'), /* install specific Strapi version */
@@ -28,8 +28,24 @@ export default function task(setup) {
     '--template',
     'https://github.com/baytechc/strapi-template-waasabi', /* the Waasabi server template */
     '--no-run',
-    '--quickstart',
-  ]);
+  ];
+
+  // Use postgresql database
+  if (setup.services.postgresql.config) {
+    let pgconfig = Object.entries(
+      setup.services.postgresql.config
+    ).map(([k,v]) => `--db${k}=${v}`);
+
+    command = command.concat([
+      '--debug',
+      '--dbclient=postgres',
+      ...pgconfig
+    ]);
+  } else {
+    command.push('--quickststart');
+  }
+
+  run.push(command);
 
   return { name, desc, run, success: `Waasabi server installed` };
 }

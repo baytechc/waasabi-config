@@ -129,7 +129,7 @@ export function pause(message = 'Press Enter to continue...') {
   return new Invisible({
     name: 'wait',
     message,
-  }).run();
+  }).run().catch(() => ''); // avoid freezing the terminal on Ctrl+C
 }
 
 

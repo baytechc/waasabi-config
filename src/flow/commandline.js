@@ -5,6 +5,8 @@ const { Input } = enquirer;
 
 import { layout } from '../init/content-formatter.js';
 
+import dumpConfig from './dump-config.js';
+
 
 export default async function() {
   layout(`
@@ -32,8 +34,14 @@ export default async function() {
     }
 
     // Restart backend
-    if (command === 'r') {
+    if (command === 'r' || command === 'restart backend') {
       await VM.restartBackend();
     }
+
+    // Show configuration
+    if (command === 'c' || command === 'config' || command === 'config show') {
+      await dumpConfig();
+    }
+
   }
 }
