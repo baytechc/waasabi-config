@@ -8,9 +8,11 @@ import pm2 from './dscript/pm2.js';
 import server from './dscript/server.js';
 import serverconfig from './dscript/server-config.js';
 import serverinit from './dscript/server-init.js';
+import serverdbinit from './dscript/server-dbinit.js';
 import serverstart from './dscript/server-start.js';
 import ui from './dscript/ui.js';
 import uiconfig from './dscript/ui-config.js';
+import chatconfig from './dscript/chat.js';
 
 
 export default function generate(setup) {
@@ -26,6 +28,8 @@ export default function generate(setup) {
     serverstart(setup),
     ui(setup),
     uiconfig(setup),
+    serverdbinit(setup),
+    chatconfig(setup),
   ];
 }
 

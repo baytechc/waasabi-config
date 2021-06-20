@@ -11,9 +11,9 @@ import { layout } from './content-formatter.js';
 import * as VM from './vm.js';
 
 
-const DEFAULT_STRAPI_VERSION = '3.6.0';
-
-const DEFAULT_UI_VERSION = '0.2.1';
+export const DEFAULT_STRAPI_VERSION = '3.6.0';
+export const DEFAULT_UI_VERSION = '0.2.1';
+export const DEFAULT_MATRIXBOT_VERSION = 'v0.2.1';
 
 export const CONFIGDIR = join(OS.homedir(), '.waasabi');
 export const INSTANCEDIR = join(CONFIGDIR, 'instance');

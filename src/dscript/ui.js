@@ -12,7 +12,7 @@ export default function task(setup) {
     '@as:waasabi',
     // TODO: move this to the next command and pipe into that for clarity
     // TODO: ownership doesn't apply for the piped command
-    `@pipe:tar -xvz --one-top-level=${setup.ui_dir} --strip-components=1`,
+    `@pipe:tar -xz --one-top-level=${setup.ui_dir} --strip-components=1`,
     /* extracts the tar.gz into the 'live' stripping the top folder path */
     'curl',
     '-fsSL',

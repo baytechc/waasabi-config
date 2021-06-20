@@ -28,7 +28,7 @@ export default async function() {
   })).run();
 
   // Keep existing settings in 'custom' mode
-  if (mode == custom) {
+  if (mode == 'custom') {
     setup.services.postgresql = Object.assign(
       setup.services.postgresql ?? {},
       { mode: selection }

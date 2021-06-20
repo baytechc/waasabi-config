@@ -28,13 +28,3 @@ import actionsMenu from './src/flow/actions.js';
   }
 
 })().catch(console.error);
-
-
-
-
-
-function matrixBotBinary() {
-  //curl -sSf https://github.com/baytechc/waasabi-matrix/releases/download/v0.1.0/ferris-bot-x86_64-pc-linux-gnu.tgz | tar -xz -C bin
-  return 'curl -sSf https://waasabi.baytech.community/ferris-bot-x86_64-pc-linux-gnu.tgz | tar -xz -C bin';
-}
-

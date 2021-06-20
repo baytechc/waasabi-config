@@ -8,10 +8,11 @@ import domain from './config-domain.js';
 import admin from './config-admin.js';
 import content from './config-content.js';
 import streaming from './config-streaming.js';
+import chat from './config-chat.js';
 import deployment from './deployment.js';
 import livepage from './livepage.js';
 
-const Change = { domain, admin, content, streaming, deployment, livepage };
+const Change = { domain, admin, content, streaming, deployment, livepage, chat };
 
 
 export async function configNew() {

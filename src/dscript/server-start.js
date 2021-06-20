@@ -16,8 +16,7 @@ export default function task(setup) {
     pm2config(setup),
   ]);
 
-  // if (!setup.mode == 'develop') {...}
-  // Install dependencies
+  // Start the server
   run.push([
     '@as:waasabi',
     'pm2',
