@@ -165,20 +165,23 @@ export async function list(opts = { detail: 'basic' }) {
     `/1.0/instances${recursion ? '?recursion='+recursion : ''}`
   ]);
 
-  let outdata = [];
+  let out = [], err = [];
 
   return new Promise((resolve, reject) => {
     //proc.on('spawn', () => console.log('$>', proc.spawnargs.join(' ').substr(0,300)+'\n...'));
     proc.on('error', (err) => reject(err));
 
-    proc.stdout.on('data', (data) => outdata.push(data));
+    proc.stdout.on('data', (c) => out.push(c));
+    proc.stderr.on('data', (c) => err.push(c));
 
     proc.on('exit', (err) => {
-      if (err) return reject(err);
+      if (err) {
+        return reject('Failed with code #'+err+'\n'+Buffer.concat(err).toString());
+      }
 
       let res;
       try {
-        res = JSON.parse(Buffer.concat(outdata).toString());
+        res = JSON.parse(Buffer.concat(out).toString());
       }
       catch(e) { return reject(e) }
 

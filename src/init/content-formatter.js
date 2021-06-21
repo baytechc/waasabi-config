@@ -136,9 +136,15 @@ export function pause(message = 'Press Enter to continue...') {
 export async function loading(message, task) {
   const spinner = ora(message).start();
 
-  const taskresult = await task;
+  let taskresult;
+  try {
+    taskresult = await task;
+  }
+  catch(e) {
+    spinner.stop();
+    throw e;
+  }
 
   spinner.stop();
-
   return taskresult;
 }

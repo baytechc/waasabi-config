@@ -78,6 +78,7 @@ async function virtualizationEnabled() {
 
     \`sudo apt-get update\`
     \`sudo apt-get install -y lxd\`
+    \`sudo service lxd start\`
     \`sudo lxd init\`
     `);
 

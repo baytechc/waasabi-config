@@ -131,7 +131,8 @@ export function instancename(host = setup.host) {
 export async function findinstance(name = instancename()) {
   let instance;
   try {
-    if ((await VM.providers()).length > 0) {
+    const providers = await VM.providers();
+    if (providers) {
       instance = await VM.find(name);
     }
   }
