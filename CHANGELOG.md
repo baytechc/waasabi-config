@@ -2,6 +2,11 @@
 
 - 
 
+# v0.1.5-pre-release (2020-06-22)
+
+- Various robustness and error-handling related fixes
+
+
 # v0.1.4-pre-release (2020-06-21)
 
 - Configure Matrix integration from the installer
