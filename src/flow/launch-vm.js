@@ -67,13 +67,18 @@ export async function developInVM() {
 async function virtualizationEnabled() {
   const providers = await VM.providers();
 
-  if (providers.length === 0) {
+  if (!providers) {
     layout(`
     
     Unfortunately virtualization technology is not available on this machine.
 
     Make sure you have a supported provider (e.g. \`LXD\`) installed and configured on this machine, and try again.
     
+    On Ubuntu and similar Debian systems you can install and configure LXD/LXC using the following commands:
+
+    \`sudo apt-get update\`
+    \`sudo apt-get install -y lxd\`
+    \`sudo lxd init\`
     `);
 
     await pause();
