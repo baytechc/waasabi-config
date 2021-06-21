@@ -174,9 +174,9 @@ export async function list(opts = { detail: 'basic' }) {
     proc.stdout.on('data', (c) => out.push(c));
     proc.stderr.on('data', (c) => err.push(c));
 
-    proc.on('exit', (err) => {
-      if (err) {
-        return reject('Failed with code #'+err+'\n'+Buffer.concat(err).toString());
+    proc.on('exit', (code) => {
+    if (code) {
+        return reject('Failed with code #'+code+'\n'+Buffer.concat(err).toString());
       }
 
       let res;
