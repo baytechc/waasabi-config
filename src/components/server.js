@@ -31,9 +31,9 @@ export default function task(setup) {
   ];
 
   // Use postgresql database
-  if (setup.services.postgresql.config) {
+  if (setup.services.postgresql) {
     let pgconfig = Object.entries(
-      setup.services.postgresql.config
+      setup.services.postgresql
     ).map(([k,v]) => `--db${k}=${v}`);
 
     command = command.concat([

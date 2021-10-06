@@ -6,19 +6,12 @@ export default function task(setup) {
 
   // Install the NodeSource distribution sources for the Node.js LTS
   run.push([
+    '@https://deb.nodesource.com/setup_lts.x',
     '@pipe:bash -',
-    'curl',
-    '-fsSL',
-    'https://deb.nodesource.com/setup_lts.x',
   ]);
 
   // Install Node.js
-  run.push([
-    'apt-get',
-    'install',
-    '-y',
-    'nodejs'
-  ]);
+  run.push([ '@ospkg', 'nodejs' ]);
 
   return { name, desc, run, success: `Node.js enabled` };
 }

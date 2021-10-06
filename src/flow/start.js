@@ -14,7 +14,7 @@ export default async function() {
   Setup.init();
 
   clear();
-  layout(`
+  layout`
     # Welcome to the Waasabi installer!
 
     This interactive setup utility will guide you through setting up your very own customized video broadcast channel on your website.
@@ -23,7 +23,7 @@ export default async function() {
     https://waasabi.org/docs
 
     You can press \`Ctrl+C\` at any time to exit the configurator.
-  `);
+  `;
 
   // loading() returns when the list of configurations is available
   const configs = await loading('Checking existing configuration…', initCheck());

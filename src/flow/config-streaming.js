@@ -1,7 +1,8 @@
 import setup, * as Setup from '../init/setup.js';
-import { layout } from '../init/content-formatter.js';
+import { em, layout } from '../init/content-formatter.js';
 
 import enquirer from 'enquirer';
+import configPeertube from './config-peertube.js';
 const { Input, Select, Password } = enquirer;
 
 
@@ -13,25 +14,36 @@ export default async function() {
     Please choose the video streaming provider you would like to use.
   `);
 
-  const backend_options = [
+  const backendOptions = [
     { name: 'Use Mux.com (HLS)', type: 'mux'},
-    { name: '(coming soon) Own streaming server with OwnCast', type: 'owncast' },
-    { name: '(coming soon) Own federated streaming service with PeerTube', type: 'peertube' },
+    { name: '(Beta!) Federated video streaming with PeerTube', type: 'peertube' },
+    { name: '(coming soon) Personal streaming server with OwnCast', type: 'owncast' },
     { name: '(coming soon) Self-hosted distributed IPFS streaming', type: 'ipfs' },
   ];
-  const BACKEND_MUX = 0;
-  const BACKEND_WHIP = 1;
 
-  setup.backend = setup.backend ?? {};
-  const backend_type  = await (new Select({
+  // Mark active option
+  backendOptions.forEach(o => {
+    if (o.active = (o.type === setup.backend.type)) {
+      o.name += ' '+em('ACTIVE');
+    }
+  });
+
+  // Pull active option to top
+  backendOptions.sort((a,b) => b.active - a.active)
+
+  const backendSelection  = await (new Select({
     name: 'backend_type',
     message: 'Select video streaming backend',
-    choices: [ ...backend_options, { name: '-', message: 'Skip' } ]
+    choices: [ ...backendOptions, { name: '-', message: setup.backend.type ? 'Done' : 'Skip' } ]
   })).run();
 
-  if (backend_type === backend_options[BACKEND_MUX].name) {
-    setup.backend.type = backend_options[BACKEND_MUX].type;
+  if (backendSelection == '-') return;
 
+  const backendType = backendOptions.find(i => i.name===backendSelection).type;
+  setup.backend = setup.backend ?? {};
+  setup.backend.type = backendType;
+
+  if (backendType === 'mux') {
     layout(`
       Before you may start using the Mux.com backend you will need to sign up for the service at https://mux.com/.
       Please configure the Access Token & Token Secret below, as provided by Mux.
@@ -53,5 +65,9 @@ export default async function() {
       })).run();
     }
     catch(e) {}
+
+  } else if (backendType === 'peertube') {
+    await configPeertube()
+
   }
 }

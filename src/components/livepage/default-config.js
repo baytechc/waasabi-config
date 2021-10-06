@@ -1,4 +1,5 @@
-import websiteconfigjs from '../livepage_website_config.js';
+import websiteconfigjs from './livepage_website_config.js';
+//TODO: cp website-config.example, edit it in place
 
 export default function task(setup) {
   const name = import.meta.url.match(/([^\/]+)\.js$/)[1];

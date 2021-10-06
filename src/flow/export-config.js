@@ -33,7 +33,7 @@ export default async function() {
 
     You will find your \`cloud-init\` configuration file in:
 
-    \`./${Setup.instancedir()}/cloud-init.yml\`
+    \`${Setup.instancedir()}/cloud-init.yml\`
 
     You can use it to configure any cloud provider that supports cloud-init, or by using cloud-init manually on your deployment server.
   `);

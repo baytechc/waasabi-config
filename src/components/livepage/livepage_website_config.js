@@ -15,11 +15,11 @@ export default (setup) => 'export default '+JSON.stringify({
 
   // Public or invite only Matrix room(s)
   WAASABI_CHAT_INVITES: false,
-  WAASABI_CHAT_URL: setup.services?.matrix.link ?? '',
+  WAASABI_CHAT_URL: setup.services.matrix?.link ?? '',
 
   // The Matrix web client to link to
-  WAASABI_MATRIX_CLIENT: setup.services?.matrix.webclient || 'https://app.element.io',
+  WAASABI_MATRIX_CLIENT: setup.services.matrix?.webclient || 'https://app.element.io',
 
   // The Matrix API server to use
-  WAASABI_MATRIX_API: setup.services?.matrix.homeserver || 'https://matrix.org',
+  WAASABI_MATRIX_API: setup.services.matrix?.homeserver || 'https://matrix.org',
 }, null, 2);

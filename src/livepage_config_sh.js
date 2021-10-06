@@ -1,6 +1,6 @@
 import b64 from './b64.js';
 
-import websiteconfigjs from './livepage_website_config.js';
+import websiteconfigjs from './components/livepage/livepage_website_config.js';
 
 export default (setup) => `
 echo -n 'Configuring live page... ' >> /var/log/waasabi_init.log

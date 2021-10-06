@@ -14,6 +14,10 @@ function h2(cont) {
   return `\n${colors.green(cont)}\n`;
 }
 
+export function warning(cont) {
+  return `\n${colors.bgYellow(colors.black(' '+cont+' '))}\n`;
+}
+
 function p(cont) {
   // Paragraphs may contain multiple lines
   cont = cont.join(' ').trim();
@@ -70,7 +74,12 @@ function highlight(str) {
 // empty lines are newlines
 // continuous paragraphs (no empty lines) are reformatted to 72chars
 
-export function layout(s) {
+export function layout(s, ...r) {
+  // Tagged template literal mode
+  if (Array.isArray(s)) {
+    s = (r??[]).map( (stitch, i) => s.raw[i]+stitch ).join('')+s.raw[s.raw.length-1].replace(/\\`/g,'`');
+  }
+ 
   // \t (tabs) are converted to 2 spaces, \r (carriage return) is discarded
   s = s.replace(/\t/g,'  ').replace(/\r/g,'');
 
@@ -87,6 +96,11 @@ export function layout(s) {
     // Paragraph heading
     } else if (l.startsWith('## ')) {
       doc.push({ t:'h2', c: l.substr(3).trim() });
+
+    // Warning heading
+    } else if (l.startsWith('/!\\ ')) {
+      doc.push({ t:'warn', c: l.substr(3).trim() });
+    
 
     // Empty line (end of start new paragraph)
     } else if (l == '') {
@@ -110,6 +124,8 @@ export function layout(s) {
       return h1(c);
     } else if (t == 'h2') {
       return h2(c);
+    } else if (t == 'warn') {
+      return warning(c);
     } else if (t == 'p') {
       return p(c);
     } else {
@@ -120,8 +136,12 @@ export function layout(s) {
   console.log(output);
 }
 
+export function em(string) {
+  return colors.bgBlue(colors.whiteBright(string));
+}
 
 export function clear() {
+  if (process.env.NOCLEAR) return;
   console.clear();
 }
 

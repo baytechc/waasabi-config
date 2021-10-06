@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 
-import matrixbotconfig from '../matrix_config_toml.js';
-import matrixbotpm2 from '../matrix_pm2_config.js';
+import matrixbotconfig from './matrix_config_toml.js';
+import matrixbotpm2 from './matrix_pm2_config.js';
 
 export default function task(setup) {
   const name = import.meta.url.match(/([^\/]+)\.js$/)[1];

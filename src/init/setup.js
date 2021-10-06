@@ -10,9 +10,11 @@ import { isEqual as _equal, cloneDeep as _clone } from 'lodash-es';
 import { layout } from './content-formatter.js';
 import * as VM from './vm.js';
 
+import { initializers } from './components.js'
+
 
 export const DEFAULT_STRAPI_VERSION = '3.6.0';
-export const DEFAULT_UI_VERSION = '0.2.1';
+export const DEFAULT_UI_VERSION = 'v0.3.0';
 export const DEFAULT_MATRIXBOT_VERSION = 'v0.2.1';
 
 export const CONFIGDIR = join(OS.homedir(), '.waasabi');
@@ -59,11 +61,17 @@ export function init() {
   // Livepage version to install
   setup.ui_version = process.env.UI_VERSION || DEFAULT_UI_VERSION;
 
+  // Streaming backend
+  setup.backend = {};
+
   // Instance-specific configuration
   setup.instance = {};
 
   // Services to deploy
   setup.services = {};
+
+  // Run component initializers for component defaults
+  initializers.forEach(c => c(setup))
 }
 
 export async function list(opts) {

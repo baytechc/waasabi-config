@@ -43,11 +43,11 @@ export async function configChange() {
       choices: [
         { name: 'domain', message: 'Domain: '+setup.host },
         { name: 'admin', message: 'Admin details: '+setup.admin_email },
-        { name: 'streaming', message: 'Streaming backend: '+setup.backend.type },
+        { name: 'streaming', message: 'Streaming backends'+(setup.backend.type ? ': '+setup.backend.type : '…') },
         { name: 'livepage', message: 'Streaming UI…' },
         { name: 'content', message: 'Content…' },
         { name: 'database', message: 'Database…' },
-        { name: 'chat', message: 'Chat integration…' },
+        { name: 'chat', message: 'Chat integrations'+(setup.services.matrix?.enabled ? ': '+setup.services.matrix?.enabled : '…') },
         { name: 'deployment', message: 'Deployment: '+(setup.deployment ?? 'standard') },
         { name: 'exit', message: 'Done' },
       ]

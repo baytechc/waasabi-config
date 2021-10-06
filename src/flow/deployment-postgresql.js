@@ -10,7 +10,7 @@ export default async function() {
   layout(`
     ## Deployment: PostgreSQL
 
-    Please choose whether you'd like to deploy a database server with Waasabi. The database server is used by the Waasabi backend API (Strapi) and certain video streaming backends, such as Peertube.
+    Please choose whether you'd like to deploy a database server with Waasabi. The database server is used by the Waasabi backend API (Strapi) and certain video streaming backends, such as PeerTube.
 
     *Default:* Installs the PostgreSQL server and configures it for all services that need it.
 

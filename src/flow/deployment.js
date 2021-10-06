@@ -7,7 +7,7 @@ const { Select } = enquirer;
 import deployNginx from './deployment-nginx.js';
 import deployPostgreSQL from './deployment-postgresql.js';
 
-import * as pgSettings from '../init/setup_postgresql.js';
+import * as pgSettings from '../components/postgresql/setup.js'; // TODO:
 
 
 export default async function() {

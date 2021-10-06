@@ -15,14 +15,25 @@ export default async function() {
     Please select and configure any chat integrations that you would like to enable for this Waasabi instance.
   `);
 
+  const current = setup.services.matrix?.enabled ?? 'disable'
+  const choices = []
+
+  // Configure matrixbot
+  choices.push({
+    name: 'matrixbot',
+    message: `(Beta!) ${current == 'matrixbot' ? 'Reconfigure':'Enable'} Matrix chat integration` 
+  });
+
+  if (current != 'disable') {
+    choices.push({ name: 'disable', message: 'Disable all chat integrations' });
+  }
+
+  choices.push({ name: 'done', message: 'Done' });
+
   const selection = await (new Select({
     name: 'mode',
-    message: 'How should the database be deployed?',
-    choices: [
-      { name: 'matrixbot', message: 'Enable Matrix chat integration' },
-      { name: 'disable', message: 'Disable all chat integrations' },
-      { name: 'done', message: 'Done' },
-    ]
+    message: 'Supported chat integrations:',
+    choices,
   })).run();
 
   if (selection === 'done') return;
@@ -106,10 +117,12 @@ async function matrixSetup() {
 
   layout(`
     ## Matrix Chat: Bot configuration
+
+    Waasabi interacts with the Matrix service through a bot account. You will need to create or register a new account for this purpose on the Matrix homeserver you want to use.
   `); 
 
   matrix.bot.username = await (new Input({
-    footer: 'The fully qualified Matrix ID (username) of the bot account to log into the homeserver.',
+    footer: 'The fully qualified Matrix ID (username) of the bot account (usually in the format: @username:homeserver.com).',
     message: 'Bot Matrix username',
     initial: matrix.bot.username
   })).run();
@@ -126,15 +139,16 @@ async function matrixSetup() {
     initial: matrix.bot.apikey
   })).run();
 
-  if (!matrix.bot.apikey) matrix.bot.apikey = md5(passwd);
+  if (!matrix.bot.apikey) matrix.bot.apikey = md5(matrix.bot.password);
 
   const botadmins = await (new Input({
-    footer: 'A comma-separated list of @matrix:usernam.es of users who are allowed to control the bot.',
+    footer: 'A comma-separated list of @matrix:usernam.es of users who are allowed to control the bot with text commands in the chat.',
     message: 'Bot admins',
     initial: (matrix.bot.admins || []).join(', ')
   })).run();
 
   matrix.bot.admins = botadmins.split(',').map(r => r.trim());
-
+  
+  matrix.enabled = 'matrixbot';
   setup.services.matrix = matrix;
 }

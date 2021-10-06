@@ -1,26 +1,24 @@
-import { md5Password } from '../init/setup_postgresql.js';
+import { defaults, md5Password } from './setup.js';
 
 
-export default function task(setup) {
+export function maintask(setup) {
   const name = import.meta.url.match(/([^\/]+)\.js$/)[1];
   const desc = `Configuring PostgreSQL…`;
 
 
-  if (setup.services?.postgresql) {
+  if (setup.services.postgresql) {
     const run = [];
 
     // Postgres configuration
     const {
-      name: database,
+      database,
       username,
       password,
-    } = setup.services.postgresql.config;
+    } = setup.services.postgresql;
 
-    // Install certbot and the --nginx backend
+    // Install Postgres components
     run.push([
-      'apt',
-      'install',
-      '-y',
+      '@ospkg',
       'postgresql',
       'postgresql-contrib',
     ]);
@@ -46,4 +44,10 @@ export default function task(setup) {
   }
 
   return { name, desc, skip: `PostgreSQL installation is not requested, skipping` }
+}
+
+export default {
+  inits: [ defaults ],
+  tasks: [ maintask ],
+  hooks: [],
 }

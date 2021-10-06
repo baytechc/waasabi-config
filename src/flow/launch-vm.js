@@ -6,7 +6,7 @@ import * as Ngrok from '../init/ngrok.js';
 import CLI from './commandline.js';
 
 import { generateYaml as generateCloudInitYml } from '../cloud_init.js';
-import generateLiveWebsiteConfig from '../livepage_website_config.js';
+//import generateLiveWebsiteConfig from '../livepage_website_config.js';
 
 
 export async function launchInVM() {
