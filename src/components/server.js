@@ -32,14 +32,14 @@ export default function task(setup) {
 
   // Use postgresql database
   if (setup.services.postgresql) {
-    let pgconfig = Object.entries(
-      setup.services.postgresql
-    ).map(([k,v]) => `--db${k}=${v}`);
-
     command = command.concat([
-      '--debug',
+      '--debug',//TODO: in dev mode only?
       '--dbclient=postgres',
-      ...pgconfig
+      `--dbname=${setup.services.postgresql.database}`,
+      `--dbhost=${setup.services.postgresql.host}`,
+      `--dbport=${setup.services.postgresql.port}`,
+      `--dbusername=${setup.services.postgresql.username}`,
+      `--dbpassword=${setup.services.postgresql.password}`,
     ]);
   } else {
     command.push('--quickststart');

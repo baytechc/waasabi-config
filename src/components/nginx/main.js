@@ -18,6 +18,12 @@ export function maintask(setup, hooks) {
 
   const run = [];
 
+  // Install Nginx
+  run.push([
+    '@ospkg',
+    'nginx'
+  ]);
+
   // Generate reverse-proxy configuration and overwrite default host config
   run.push([
     '@writefile:/etc/nginx/sites-available/default',

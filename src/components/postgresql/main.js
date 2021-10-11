@@ -30,15 +30,25 @@ export function maintask(setup) {
       'main',
       'start',
     ]);
+    run.push([
+      'sleep',
+      5
+    ])
 
     // sudo -u postgres psql -c "SQL"
     run.push([
       '@as:postgres',
       'psql',
       '-c', `CREATE ROLE ${username} PASSWORD 'md5${md5Password(password,username)}' INHERIT LOGIN;`,
-      '-c', `CREATE DATABASE ${database} OWNER waasabi;`,
-      '-c', `CREATE DATABASE ${database}_peertube OWNER waasabi;`,
     ]);
+    run.push([
+      '@as:postgres',
+      'createdb',
+      '-O', 'waasabi',
+      '-E', 'UTF8',
+      '-T', 'template0',
+      database
+    ])
 
     return { name, desc, run, success: `PostgreSQL server deployed.` }
   }

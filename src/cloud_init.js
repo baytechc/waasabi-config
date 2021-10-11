@@ -27,7 +27,6 @@ async function configurePackages(setup) {
   const packages = [
     'git', /* needed for e.g. the Strapi installer */
     'curl','unzip', /* needed for the Deno installer */
-    'nginx',
   ];
 
   const package_update = true;

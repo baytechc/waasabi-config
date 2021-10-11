@@ -76,8 +76,8 @@ async function matrixSetup() {
   matrix.backend = matrix.backend ?? {};
 
   // setup.backend.url?
-  matrix.backend.host = matrix.backend.host ?? 'http://127.0.0.1:1337/waasabi/';
-  matrix.backend.endpoint = matrix.backend.endpoint ?? 'event-manager/integrations';
+  matrix.backend.host = matrix.backend.host ?? 'http://localhost:1337/waasabi';
+  matrix.backend.endpoint = matrix.backend.endpoint ?? '/event-manager/integrations';
 
   layout(`
     ## Matrix Chat: Backend configuration

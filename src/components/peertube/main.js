@@ -98,6 +98,14 @@ export function maintask(setup) {
   run.push([ '@dir:'+HOMEDIR+'/peertube-latest' ]);
   run.push([ '@as:'+_PEERTUBE, 'yarn', 'install', '--production', '--pure-lockfile' ]);
 
+  // Create the production.yaml from the default config
+  run.push([
+    '@as:peertube',
+    'cp',
+      'config/production.yaml.example',
+      HOMEDIR+'/config/production.yaml'
+  ]);
+
   // Update the YAML configuration of the instance
   // This takes the default YAML configuration that came with the PeerTube version
   // and updates it with the neccessary entries

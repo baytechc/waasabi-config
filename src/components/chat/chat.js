@@ -46,20 +46,13 @@ function integrateMatrixChat(setup) {
   // Create home folder for the bot and install the binary
   run.push([
     '@as:waasabi',
-    'mkdir',
-    '-p',
-    matrix.bot.dir
+    '@ensuredir:'+matrix.bot.dir
   ]);
 
   run.push([
     '@as:waasabi',
-    // TODO: move this to the next command and pipe into that for clarity
-    // TODO: ownership doesn't apply for the piped command
-    `@pipe:tar -xz -C /home/waasabi/matrixbot`,
-    /* extracts the tar.gz into the 'live' stripping the top folder path */
-    'curl',
-    '-fsSL',
-    `https://github.com/baytechc/waasabi-matrix/releases/download/${matrix.bot.version}/waasabi-matrix-${matrix.bot.version}-x86_64-unknown-linux-gnu.tar.gz`,
+    `@https://github.com/baytechc/waasabi-matrix/releases/download/${matrix.bot.version}/waasabi-matrix-${matrix.bot.version}-x86_64-unknown-linux-gnu.tar.gz`,
+    `@extract:${matrix.bot.dir}/waasabi-matrix`,
   ]);
 
   // Switch to the bot directory

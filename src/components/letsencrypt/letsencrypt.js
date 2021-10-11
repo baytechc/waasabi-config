@@ -7,8 +7,7 @@ export default function task(setup) {
 
     // Install certbot and the --nginx backend
     run.push([
-      'apt-get',
-      'install',
+      '@ospkg',
       'certbot',
       'python3-certbot-nginx',
     ]);
