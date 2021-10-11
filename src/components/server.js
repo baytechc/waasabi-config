@@ -21,7 +21,8 @@ export default function task(setup) {
 
   // Create a Waasabi server instance from the Strapi template
   let command = [
-    '@as:waasabi',
+    //'@as:waasabi', // for some reason npx does not adhere to uid/gid setting properly
+    'sudo', '-u', 'waasabi',
     'npx',
     'create-strapi-app@'+(setup.strapi_version || 'latest'), /* install specific Strapi version */
     setup.app, /* the name of the directory to create the server in */

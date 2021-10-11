@@ -13,5 +13,18 @@ export default function task(setup) {
   // Install Node.js
   run.push([ '@ospkg', 'nodejs' ]);
 
+  // Set up waasabi's global npm
+  run.push([ '@dir:/' ]);
+  run.push([
+    '@as:waasabi',
+    '@ensuredir:/home/waasabi/.npm-global'
+  ]);
+
+  run.push([
+    '@as:waasabi',
+    'npm','config',
+    'set','prefix','/home/waasabi/.npm-global'
+  ]);
+
   return { name, desc, run, success: `Node.js enabled` };
 }
