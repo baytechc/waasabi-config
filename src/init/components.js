@@ -1,4 +1,5 @@
 import metadata from '../components/metadata.js';
+import startup from '../components/startup.js';
 
 import server from '../components/server.js';
 // TODO: move subcomponents under the main component
@@ -22,6 +23,7 @@ import peertube from '../components/peertube/main.js';
 // TODO: make this resolve automatically via before/after dependencies
 const components = [
   metadata,
+  startup,
   nginx,
   letsencrypt,
   postgresql,
