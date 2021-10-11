@@ -36,6 +36,7 @@ export function maintask(setup) {
     ])
 
     // sudo -u postgres psql -c "SQL"
+    run.push([ '@dir:/' ]) // avoids directory permission errors of /root
     run.push([
       '@as:postgres',
       'psql',
