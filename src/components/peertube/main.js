@@ -50,7 +50,7 @@ export function maintask(setup) {
   run.push([ '@ospkg',
     'curl', 'ffmpeg', 'cron',
     // 'unzip' - replaced .zip download with .tar.xz
-    'python-dev', 'python-is-python3',
+    'python3-dev', 'python-is-python3',
     'git',
     'openssl',
     'g++', 'make'
